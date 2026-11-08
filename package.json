@@ -1,0 +1,17 @@
+{
+  "name": "engineering-academy",
+  "version": "0.1.0",
+  "description": "A local-first engineering knowledge base: capture commands, errors and explanations, then turn them into understanding.",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22.13"
+  },
+  "scripts": {
+    "start": "node --disable-warning=ExperimentalWarning server/index.js",
+    "dev": "node --disable-warning=ExperimentalWarning --watch server/index.js",
+    "build": "node scripts/check.js",
+    "test": "node --disable-warning=ExperimentalWarning --test tests/api.test.js",
+    "test:e2e": "node --disable-warning=ExperimentalWarning tests/e2e/run.js"
+  }
+}

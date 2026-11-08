@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="dark" />
+    <title>Engineering Academy</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/css/styles.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#view">Skip to content</a>
+    <div class="shell">
+      <aside class="sidebar">
+        <a class="brand" href="#/">
+          <span class="brand-mark" aria-hidden="true">EA</span>
+          <span class="brand-name">Engineering <br />Academy</span>
+        </a>
+        <nav id="nav" aria-label="Main"></nav>
+        <p class="sidebar-foot">Stored only on this computer</p>
+      </aside>
+      <div class="workspace">
+        <header class="topbar">
+          <div class="global-search" role="search">
+            <label class="visually-hidden" for="global-search">Search everything</label>
+            <input id="global-search" type="search" placeholder="Search knowledge, commands, and errors" autocomplete="off" spellcheck="false" />
+            <kbd aria-hidden="true">Ctrl K</kbd>
+          </div>
+          <a class="button primary" href="#/capture" id="topbar-capture">Capture</a>
+        </header>
+        <main id="view" tabindex="-1"></main>
+      </div>
+    </div>
+    <div id="toasts" class="toasts" role="status" aria-live="polite"></div>
+    <div id="chart-tooltip" class="chart-tooltip" hidden></div>
+    <script type="module" src="/js/main.js"></script>
+  </body>
+</html>
