@@ -6,6 +6,7 @@ import { openDatabase } from './db.js';
 import { createEvaluator } from './evaluator.js';
 import { createRepository } from './repository.js';
 import { seedIfFirstRun } from './seed.js';
+import { installCurriculum } from './curriculum.js';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const env = process.env;
@@ -38,6 +39,7 @@ if (exposed && config.password.length < 12) {
 const db = openDatabase(config.dbPath);
 const repo = createRepository(db);
 const seeded = config.seed && seedIfFirstRun(repo);
+const curriculumAdded = installCurriculum(repo);
 const auth = createAuth({ password: config.password, secret: config.sessionSecret, secureCookies: config.secureCookies, trustProxy: config.trustProxy });
 const server = createApp(repo, { auth, allowedHosts: config.allowedHosts, evaluator: createEvaluator(config.evaluator) });
 
@@ -51,6 +53,7 @@ server.on('error', (err) => {
 
 server.listen(config.port, config.host, () => {
   if (seeded) console.log('First run: added example records (labelled EXAMPLE in the app).');
+  if (curriculumAdded) console.log('Installed the Korean curriculum (Curriculum page).');
   console.log(`Engineering Academy running at http://localhost:${config.port}`);
   console.log(`Data file: ${config.dbPath}`);
   if (auth.enabled) console.log('Password protection: on');

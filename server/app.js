@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { createAuth } from './auth.js';
 import { createEvaluator } from './evaluator.js';
 import { createLearning } from './learning.js';
+import { curriculum } from './curriculum.js';
 import { NotFoundError, ValidationError } from './repository.js';
 import { isKind } from './resources.js';
 
@@ -158,6 +159,7 @@ async function routeApi(ctx, req, res, url) {
     if (name === 'samples' && method === 'DELETE') return send(res, 200, { removed: repo.removeSamples() });
     if (name === 'review' && method === 'GET') return send(res, 200, learning.reviewQueue());
     if (name === 'progress' && method === 'GET') return send(res, 200, learning.progress());
+    if (name === 'curriculum' && method === 'GET') return send(res, 200, curriculum(repo, learning));
     if (name === 'map' && method === 'GET') return send(res, 200, learning.map());
     if (name === 'links' && method === 'POST') return send(res, 201, learning.addLink(await readJson(req)));
     if (name === 'links' && method === 'DELETE') return send(res, 200, learning.removeLink(await readJson(req)));

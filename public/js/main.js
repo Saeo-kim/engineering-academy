@@ -1,6 +1,9 @@
 import { api } from './api.js';
 import { confirmDialog, debounce, h, icon, replaceChildren } from './dom.js';
+import { installExplainer } from './explain.js';
 import { captureView } from './views/capture.js';
+import { curriculumView } from './views/curriculum.js';
+import { explainerView } from './views/explainer.js';
 import { dashboardView } from './views/dashboard.js';
 import { detailView } from './views/detail.js';
 import { formView } from './views/form.js';
@@ -17,6 +20,9 @@ const NAV = [
   { group: 'Workspace' },
   { href: '#/', label: 'Dashboard', icon: 'dashboard', match: '' },
   { href: '#/capture', label: 'Quick Capture', icon: 'capture', match: 'capture' },
+  { group: '공부 시작' },
+  { href: '#/curriculum', label: '커리큘럼', icon: 'curriculum', match: 'curriculum' },
+  { href: '#/explain', label: '코드 해부실', icon: 'explain', match: 'explain' },
   { group: 'Archive' },
   { href: '#/knowledge', label: 'Knowledge Library', icon: 'library', match: 'knowledge' },
   { href: '#/errors', label: 'Error Archive', icon: 'errors', match: 'errors' },
@@ -34,6 +40,8 @@ const NAV = [
 const routes = [
   [/^$/, dashboardView],
   [/^capture$/, captureView],
+  [/^curriculum$/, curriculumView],
+  [/^explain$/, explainerView],
   [/^search$/, searchView],
   [/^review$/, reviewView],
   [/^quiz$/, quizHomeView],
@@ -127,7 +135,41 @@ async function render() {
   if (token !== renderToken) return; // the user has already navigated elsewhere
   view.replaceChildren(node);
   view.dataset.ready = String(token);
+  recordTrail(path);
   window.scrollTo(0, 0);
+}
+
+// 공부 경로: the last pages studied, one click to go back to any of them.
+const trailEl = document.getElementById('trail');
+const STUDY_PAGE = /^(knowledge|commands|errors|workflows)\/\d+$|^(curriculum|explain)$|^practice\//;
+
+function readTrail() {
+  try {
+    return JSON.parse(sessionStorage.getItem('ea-trail') ?? '[]');
+  } catch {
+    return [];
+  }
+}
+
+function recordTrail(path) {
+  let trail = readTrail();
+  const here = `#/${path}`;
+  if (STUDY_PAGE.test(path)) {
+    const title = view.querySelector('h1')?.textContent?.trim() || path;
+    trail = [{ hash: here, title }, ...trail.filter((t) => t.hash !== here)].slice(0, 6);
+    try {
+      sessionStorage.setItem('ea-trail', JSON.stringify(trail));
+    } catch {
+      /* the trail is a convenience only */
+    }
+  }
+  const others = trail.filter((t) => t.hash !== here);
+  trailEl.hidden = others.length === 0;
+  replaceChildren(
+    trailEl,
+    h('span', { class: 'trail-label' }, '← 방금 공부한 곳'),
+    others.slice(0, 5).map((t) => h('a', { class: 'trail-item', href: t.hash, title: t.title }, t.title)),
+  );
 }
 
 window.addEventListener('hashchange', async () => {
@@ -235,4 +277,5 @@ async function boot() {
   render();
 }
 
+installExplainer();
 boot();

@@ -2,6 +2,8 @@
 // innerHTML. Captured terminal output can contain anything, including HTML,
 // and it must only ever render as text.
 
+import { annotate, looksLikeCode } from './explain.js';
+
 export function h(tag, props, ...children) {
   const el = document.createElement(tag);
   for (const [key, value] of Object.entries(props ?? {})) {
@@ -43,6 +45,8 @@ const ICONS = {
   map: 'M6 6a2 2 0 1 0 0 .1M18 8a2 2 0 1 0 0 .1M12 18a2 2 0 1 0 0 .1M7.7 7l8.6.6M7 8l4 8.3M17 10l-4 6.3',
   progress: 'M4 20V10M10 20V4M16 20v-7M22 20H2',
   logout: 'M15 4h4v16h-4M10 8l-4 4 4 4M6 12h10',
+  curriculum: 'M4 5h6a2 2 0 0 1 2 2v13a2 2 0 0 0-2-2H4zM20 5h-6a2 2 0 0 0-2 2v13a2 2 0 0 1 2-2h6z',
+  explain: 'M10 4a6 6 0 1 0 0 12 6 6 0 0 0 0-12zM14.5 14.5L20 20M8 10h4M10 8v4',
 };
 
 export function icon(name) {
@@ -57,16 +61,20 @@ export function icon(name) {
 }
 
 function inlineCode(text) {
-  return text.split(/`([^`\n]+)`/g).map((part, i) => (i % 2 ? h('code', null, part) : part));
+  return text
+    .split(/`([^`\n]+)`/g)
+    .map((part, i) => (i % 2 ? h('code', null, annotate(part)) : part.split(/\*\*([^*\n]+)\*\*/g).map((p, j) => (j % 2 ? h('strong', null, p) : p))));
 }
 
 // Deliberately small subset of Markdown: ``` fences, `inline code`, paragraphs.
 export function richText(text) {
   const root = h('div', { class: 'prose' });
-  const parts = text.split(/```[^\n`]*\n?([\s\S]*?)```/g);
+  // ```text fences are tables and diagrams: shown as plain text, not explorable code.
+  const parts = text.split(/```([^\n`]*)\n?([\s\S]*?)```/g);
   parts.forEach((part, i) => {
-    if (i % 2) {
-      root.append(codeBlock(part.replace(/\n$/, '')));
+    if (i % 3 === 1) return; // fence language
+    if (i % 3 === 2) {
+      root.append(codeBlock(part.replace(/\n$/, ''), { plain: parts[i - 1].trim() === 'text' }));
       return;
     }
     for (const para of part.split(/\n{2,}/)) {
@@ -76,13 +84,29 @@ export function richText(text) {
   return root;
 }
 
-export function codeBlock(text, { copy = false, tone } = {}) {
+export function codeBlock(text, { copy = false, tone, plain = false } = {}) {
+  const explorable = !plain && looksLikeCode(text);
   return h(
     'div',
-    { class: `code-block${tone ? ` ${tone}` : ''}` },
-    h('pre', { tabIndex: 0 }, h('code', null, text)),
-    copy && copyButton(text),
+    { class: `code-block${tone ? ` ${tone}` : ''}${explorable ? ' explorable' : ''}` },
+    h('pre', { tabIndex: 0 }, h('code', null, explorable ? annotate(text) : text)),
+    (explorable || copy) &&
+      h(
+        'div',
+        { class: 'code-tools' },
+        explorable && h('a', { class: 'copy', href: '#/explain', title: '이 코드를 해부실에서 한 줄씩 해석', onclick: () => stashCode(text) }, '해부'),
+        copy && copyButton(text),
+      ),
   );
+}
+
+// Hands a code block to the 코드 해부실 page.
+export function stashCode(text) {
+  try {
+    sessionStorage.setItem('ea-explain-code', text);
+  } catch {
+    /* the page then starts empty */
+  }
 }
 
 export function copyButton(text) {

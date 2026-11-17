@@ -57,4 +57,5 @@ export const api = {
   link: (a, b) => request('POST', 'links', { a, b }),
   unlink: (a, b) => request('DELETE', 'links', { a, b }),
   progress: () => request('GET', 'progress'),
+  curriculum: () => request('GET', 'curriculum'),
 };

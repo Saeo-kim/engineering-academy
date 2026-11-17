@@ -1,0 +1,79 @@
+/* 코드 해부: explorable code, hover tooltip, explanation drawer, curriculum. */
+
+.xterm { border-bottom: 1px dotted color-mix(in srgb, var(--accent) 70%, transparent); border-radius: 2px; cursor: help; }
+.xterm.gen { border-bottom-color: color-mix(in srgb, var(--muted) 45%, transparent); }
+.xterm.sql { border-bottom: 2px solid var(--commands); }
+.xterm:hover, .xterm:focus-visible { background: color-mix(in srgb, var(--accent) 18%, transparent); color: var(--text); outline: none; }
+.xterm.sql:hover { background: color-mix(in srgb, var(--commands) 22%, transparent); }
+.xs-comment { color: var(--muted); }
+.xs-string { color: #b9d98a; }
+
+.code-tools { position: absolute; top: 7px; right: 7px; display: flex; gap: 6px; }
+.code-tools .copy { position: static; text-decoration: none; }
+.code-block.explorable pre { padding-right: 110px; }
+
+.xtip { position: fixed; z-index: 80; display: flex; flex-direction: column; gap: 4px; padding: 10px 12px; background: var(--panel-raised); border: 1px solid var(--line-strong); border-radius: var(--radius); box-shadow: 0 8px 24px rgb(0 0 0 / 45%); font-size: 13.5px; line-height: 1.5; pointer-events: none; }
+.xtip strong { font-family: var(--mono); color: var(--accent-strong); }
+.xtip em { color: var(--muted); font-size: 12px; font-style: normal; }
+
+.xdrawer { position: fixed; z-index: 70; top: 0; right: 0; bottom: 0; display: flex; flex-direction: column; width: min(440px, 100vw); background: var(--panel); border-left: 1px solid var(--line-strong); box-shadow: -12px 0 32px rgb(0 0 0 / 40%); }
+.xd-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 12px 16px; border-bottom: 1px solid var(--line); }
+.xd-head .link-button { font-size: 18px; }
+.xd-crumbs { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; padding: 10px 16px; border-bottom: 1px solid var(--line); }
+.xd-crumb { padding: 2px 8px; background: none; border: 1px solid var(--line); border-radius: 999px; color: var(--text-2); font: 12px var(--mono); cursor: pointer; }
+.xd-crumb:hover { border-color: var(--accent); color: var(--text); }
+.xd-crumb.current { border-color: var(--accent); color: var(--accent-strong); }
+.xd-sep { color: var(--muted); }
+.xd-body { flex: 1; overflow-y: auto; padding: 16px 18px 28px; }
+.xd-body h2 { margin-bottom: 8px; font: 600 19px var(--mono); }
+.xd-body h3 { margin: 18px 0 8px; color: var(--text-2); font-size: 13px; font-weight: 600; }
+.xd-body p { margin-bottom: 10px; color: var(--text-2); }
+.xd-body code { padding: 1px 4px; background: var(--code-bg); border-radius: 3px; font-size: .9em; }
+.xd-short { color: var(--text) !important; font-size: 15.5px; }
+.xd-sql { display: inline-block; padding: 3px 8px; background: color-mix(in srgb, var(--commands) 15%, transparent); border-radius: 4px; color: var(--commands) !important; font-size: 13px; }
+.xd-example { margin: 0; padding: 10px 12px; overflow-x: auto; background: var(--code-bg); border: 1px solid var(--line); border-radius: 6px; font-size: 13px; }
+.xd-example code { padding: 0; background: none; }
+.xd-deeper { display: flex; flex-direction: column; gap: 8px; }
+.xd-deep { display: flex; flex-direction: column; gap: 2px; padding: 10px 12px; background: var(--panel-raised); border: 1px solid var(--line); border-radius: var(--radius); color: var(--text-2); font: 13px/1.45 var(--sans); text-align: left; cursor: pointer; }
+.xd-deep strong { color: var(--accent-strong); font-family: var(--mono); }
+.xd-deep:hover { border-color: var(--accent); }
+.xd-search { display: inline-block; margin-top: 20px; font-size: 13px; }
+
+/* 공부 경로 */
+.trail { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 7px 28px; border-bottom: 1px solid var(--line); background: var(--sidebar); font-size: 12.5px; }
+.trail-label { color: var(--muted); font-family: var(--mono); }
+.trail-item { max-width: 240px; overflow: hidden; padding: 2px 9px; border: 1px solid var(--line); border-radius: 999px; color: var(--text-2); text-decoration: none; text-overflow: ellipsis; white-space: nowrap; }
+.trail-item:hover { border-color: var(--accent); color: var(--text); }
+
+/* 코드 해부실 */
+.explain-grid { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 18px; align-items: start; }
+.explain-input { padding: 0 18px 12px; }
+.explain-input textarea { width: 100%; padding: 10px 12px; background: var(--code-bg); border: 1px solid var(--line); border-radius: 6px; color: var(--text); font: 13.5px/1.55 var(--mono); resize: vertical; }
+.xlines { display: flex; flex-direction: column; gap: 2px; padding: 0 12px 16px; }
+.xline { display: grid; grid-template-columns: 32px minmax(0, 1fr); gap: 8px; padding: 8px 6px; border-radius: 6px; }
+.xline:hover { background: var(--panel-raised); }
+.xline.has-sql { box-shadow: inset 3px 0 0 var(--commands); }
+.xline-no { padding-top: 2px; color: var(--muted); font: 12px var(--mono); text-align: right; }
+.xline pre { margin: 0; overflow-x: auto; font-size: 14px; }
+.xline-read { margin-top: 4px; color: var(--text-2); font-size: 13.5px; }
+.xline-sql { margin-top: 2px; color: var(--commands); font-size: 13px; }
+.explain-side { display: flex; flex-direction: column; gap: 14px; }
+.gloss-group { padding: 0 16px 12px; }
+.gloss-group h3 { margin-bottom: 6px; color: var(--muted); font: 500 11px var(--mono); letter-spacing: .06em; }
+.chip-list { display: flex; flex-wrap: wrap; gap: 5px; padding: 0 0 4px; }
+.explain-side .panel > .chip-list { padding: 0 16px 14px; }
+.chip { padding: 3px 9px; background: var(--panel-raised); border: 1px solid var(--line); border-radius: 999px; color: var(--text-2); font: 12px var(--mono); cursor: pointer; }
+.chip:hover { border-color: var(--accent); color: var(--text); }
+
+/* 커리큘럼 */
+.track { margin-bottom: 14px; }
+.track-intro { padding: 0 18px 8px; color: var(--text-2); font-size: 14px; }
+.track-list { margin: 0; padding: 0 10px 12px; list-style: none; }
+.track-list .feed-row { display: flex; align-items: center; gap: 10px; }
+.track-list .feed-title { flex: 1; min-width: 0; }
+.next-step { text-decoration: none; border-style: solid; border-color: var(--accent); }
+
+@media (max-width: 900px) {
+  .explain-grid { grid-template-columns: minmax(0, 1fr); }
+  .trail { padding: 7px 16px; }
+}
