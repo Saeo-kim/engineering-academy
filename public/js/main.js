@@ -1,9 +1,12 @@
 import { api } from './api.js';
 import { confirmDialog, debounce, h, icon, replaceChildren } from './dom.js';
+import { initPwa } from './pwa.js';
 import { captureView } from './views/capture.js';
+import { courseView, coursesView, lessonView } from './views/courses.js';
 import { dashboardView } from './views/dashboard.js';
 import { detailView } from './views/detail.js';
 import { formView } from './views/form.js';
+import { installView } from './views/install.js';
 import { listView } from './views/list.js';
 import { loginView } from './views/login.js';
 import { mapView } from './views/map.js';
@@ -23,12 +26,24 @@ const NAV = [
   { href: '#/commands', label: 'Command Library', icon: 'commands', match: 'commands' },
   { href: '#/workflows', label: 'Workflows', icon: 'workflows', match: 'workflows' },
   { group: 'Learn' },
+  { href: '#/courses', label: 'Courses', icon: 'courses', match: 'courses' },
   { href: '#/review', label: 'Review Center', icon: 'review', match: 'review' },
   { href: '#/quiz', label: 'Assessment', icon: 'quiz', match: 'quiz' },
   { href: '#/map', label: 'Knowledge Map', icon: 'map', match: 'map' },
   { href: '#/progress', label: 'Progress', icon: 'progress', match: 'progress' },
   { group: 'Find' },
   { href: '#/search', label: 'Search', icon: 'search', match: 'search' },
+  { group: 'App' },
+  { href: '#/install', label: 'Install App', icon: 'install', match: 'install' },
+];
+
+// Bottom tab bar on phones: the screens you reach for most, one thumb away.
+const TABS = [
+  { href: '#/', label: 'Home', icon: 'home', match: '' },
+  { href: '#/courses', label: 'Courses', icon: 'courses', match: 'courses' },
+  { href: '#/capture', label: 'Capture', icon: 'capture', match: 'capture', primary: true },
+  { href: '#/review', label: 'Review', icon: 'review', match: 'review' },
+  { href: '#/progress', label: 'Progress', icon: 'progress', match: 'progress' },
 ];
 
 const routes = [
@@ -40,6 +55,10 @@ const routes = [
   [/^quiz\/(?<id>\d+)$/, quizView],
   [/^map$/, mapView],
   [/^progress$/, progressView],
+  [/^courses$/, coursesView],
+  [/^courses\/(?<track>[a-z0-9-]+)$/, courseView],
+  [/^courses\/(?<track>[a-z0-9-]+)\/(?<lesson>[a-z0-9-]+)$/, lessonView],
+  [/^install$/, installView],
   [/^practice\/(?<kind>[a-z]+)\/(?<id>\d+)\/(?<mode>explain|rebuild)$/, practiceView],
 ];
 for (const kind of ['knowledge', 'commands', 'errors', 'workflows']) {
@@ -53,6 +72,9 @@ for (const kind of ['knowledge', 'commands', 'errors', 'workflows']) {
 
 const view = document.getElementById('view');
 const nav = document.getElementById('nav');
+const tabbar = document.getElementById('tabbar');
+const shellEl = document.querySelector('.shell');
+const menuToggle = document.getElementById('menu-toggle');
 const searchInput = document.getElementById('global-search');
 
 let dirty = false;
@@ -76,7 +98,29 @@ function renderNav(path) {
         : h('a', { class: `nav-link${item.match === section ? ' active' : ''}`, href: item.href, 'aria-current': item.match === section ? 'page' : undefined }, icon(item.icon), h('span', null, item.label)),
     ),
   );
+  replaceChildren(
+    tabbar,
+    TABS.map((tab) =>
+      h(
+        'a',
+        { class: `tab-link${tab.match === section ? ' active' : ''}${tab.primary ? ' primary' : ''}`, href: tab.href, 'aria-current': tab.match === section ? 'page' : undefined },
+        icon(tab.icon),
+        h('span', null, tab.label),
+      ),
+    ),
+  );
 }
+
+function setMenu(open) {
+  shellEl.classList.toggle('menu-open', open);
+  menuToggle.setAttribute('aria-expanded', String(open));
+  replaceChildren(menuToggle, icon(open ? 'close' : 'menu'), h('span', null, open ? 'Close' : 'Menu'));
+}
+menuToggle.addEventListener('click', () => setMenu(!shellEl.classList.contains('menu-open')));
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && shellEl.classList.contains('menu-open')) setMenu(false);
+});
+setMenu(false);
 
 function errorPanel(err) {
   const missing = err.status === 404;
@@ -97,6 +141,7 @@ async function render() {
   const token = (renderToken += 1);
   const { path, query } = parseHash();
   renderNav(path);
+  setMenu(false);
   document.getElementById('chart-tooltip').hidden = true;
   dirty = false;
   currentHash = location.hash;
@@ -235,4 +280,5 @@ async function boot() {
   render();
 }
 
+initPwa();
 boot();

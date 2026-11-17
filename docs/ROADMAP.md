@@ -2,6 +2,12 @@
 
 Capture stays deliberately manual. This document records how the app could grow and what must be true before it does.
 
+## Shipped in v0.3
+
+- **Courses.** Structured learning tracks (stages → modules → lessons with objectives, key terms, examples, practice and module projects). The first track is Robotics Engineering, 11 modules and 47 lessons (`server/curriculum/robotics.js`).
+- **Lecture videos.** A mobile-first player on every lesson for YouTube, Vimeo and native video files, including self-hosted files served with HTTP range requests.
+- **Mobile and installable app.** Phone layout with a tab bar, iPhone safe areas, a web app manifest, a service worker and fixed Home Screen icons (`docs/BRANDING.md`).
+
 ## Shipped in v0.2
 
 - **Learning loop.** Explain-back exercises, rebuild challenges, generated assessments, a spaced-repetition Review Center, and a five-stage progress model per record (`server/learning.js`).

@@ -43,6 +43,18 @@ const ICONS = {
   map: 'M6 6a2 2 0 1 0 0 .1M18 8a2 2 0 1 0 0 .1M12 18a2 2 0 1 0 0 .1M7.7 7l8.6.6M7 8l4 8.3M17 10l-4 6.3',
   progress: 'M4 20V10M10 20V4M16 20v-7M22 20H2',
   logout: 'M15 4h4v16h-4M10 8l-4 4 4 4M6 12h10',
+  courses: 'M2 9l10-5 10 5-10 5zM6 11v5c3 2.5 9 2.5 12 0v-5M22 9v6',
+  home: 'M3 11l9-7 9 7M5 10v10h5v-6h4v6h5V10',
+  play: 'M8 5v14l11-7z',
+  check: 'M5 12l5 5L20 7',
+  menu: 'M4 6h16M4 12h16M4 18h16',
+  close: 'M6 6l12 12M18 6L6 18',
+  install: 'M12 3v12M7 10l5 5 5-5M5 21h14',
+  share: 'M12 15V3M8 7l4-4 4 4M7 11H5v10h14V11h-2',
+  addSquare: 'M4 4h16v16H4zM12 8v8M8 12h8',
+  clock: 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM12 7v5l3 2',
+  external: 'M14 4h6v6M20 4l-9 9M18 14v6H4V6h6',
+  video: 'M3 6h13v12H3zM16 10l5-3v10l-5-3',
 };
 
 export function icon(name) {

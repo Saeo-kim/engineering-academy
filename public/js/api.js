@@ -57,4 +57,11 @@ export const api = {
   link: (a, b) => request('POST', 'links', { a, b }),
   unlink: (a, b) => request('DELETE', 'links', { a, b }),
   progress: () => request('GET', 'progress'),
+  // Courses
+  courses: () => request('GET', 'courses'),
+  course: (trackId) => request('GET', `courses/${encodeURIComponent(trackId)}`),
+  lesson: (trackId, lessonId) => request('GET', `courses/${encodeURIComponent(trackId)}/lessons/${encodeURIComponent(lessonId)}`),
+  updateLesson: (trackId, lessonId, body) => request('PUT', `courses/${encodeURIComponent(trackId)}/lessons/${encodeURIComponent(lessonId)}`, body),
+  saveLesson: (trackId, lessonId) => request('POST', `courses/${encodeURIComponent(trackId)}/lessons/${encodeURIComponent(lessonId)}/save`),
+  media: () => request('GET', 'media'),
 };

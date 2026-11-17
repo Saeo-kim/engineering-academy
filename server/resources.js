@@ -12,6 +12,7 @@ export const CATEGORIES = [
   'Cloud / Deployment',
   'Security',
   'AI Tools',
+  'Robotics',
   'Other',
 ];
 
