@@ -7,6 +7,7 @@
     <title>Engineering Academy</title>
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="/css/styles.css" />
+    <link rel="stylesheet" href="/css/learning.css" />
   </head>
   <body>
     <a class="skip-link" href="#view">Skip to content</a>
@@ -23,7 +24,7 @@
         <header class="topbar">
           <div class="global-search" role="search">
             <label class="visually-hidden" for="global-search">Search everything</label>
-            <input id="global-search" type="search" placeholder="Search knowledge, commands, and errors" autocomplete="off" spellcheck="false" />
+            <input id="global-search" type="search" placeholder="Search knowledge, commands, errors, and workflows" autocomplete="off" spellcheck="false" />
             <kbd aria-hidden="true">Ctrl K</kbd>
           </div>
           <a class="button primary" href="#/capture" id="topbar-capture">Capture</a>
@@ -31,6 +32,7 @@
         <main id="view" tabindex="-1"></main>
       </div>
     </div>
+    <div id="login-root" hidden></div>
     <div id="toasts" class="toasts" role="status" aria-live="polite"></div>
     <div id="chart-tooltip" class="chart-tooltip" hidden></div>
     <script type="module" src="/js/main.js"></script>

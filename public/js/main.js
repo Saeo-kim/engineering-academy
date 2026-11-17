@@ -1,9 +1,16 @@
+import { api } from './api.js';
 import { confirmDialog, debounce, h, icon, replaceChildren } from './dom.js';
 import { captureView } from './views/capture.js';
 import { dashboardView } from './views/dashboard.js';
 import { detailView } from './views/detail.js';
 import { formView } from './views/form.js';
 import { listView } from './views/list.js';
+import { loginView } from './views/login.js';
+import { mapView } from './views/map.js';
+import { practiceView } from './views/practice.js';
+import { progressView } from './views/progress.js';
+import { quizHomeView, quizView } from './views/quiz.js';
+import { reviewView } from './views/review.js';
 import { searchView } from './views/search.js';
 
 const NAV = [
@@ -14,6 +21,12 @@ const NAV = [
   { href: '#/knowledge', label: 'Knowledge Library', icon: 'library', match: 'knowledge' },
   { href: '#/errors', label: 'Error Archive', icon: 'errors', match: 'errors' },
   { href: '#/commands', label: 'Command Library', icon: 'commands', match: 'commands' },
+  { href: '#/workflows', label: 'Workflows', icon: 'workflows', match: 'workflows' },
+  { group: 'Learn' },
+  { href: '#/review', label: 'Review Center', icon: 'review', match: 'review' },
+  { href: '#/quiz', label: 'Assessment', icon: 'quiz', match: 'quiz' },
+  { href: '#/map', label: 'Knowledge Map', icon: 'map', match: 'map' },
+  { href: '#/progress', label: 'Progress', icon: 'progress', match: 'progress' },
   { group: 'Find' },
   { href: '#/search', label: 'Search', icon: 'search', match: 'search' },
 ];
@@ -22,8 +35,14 @@ const routes = [
   [/^$/, dashboardView],
   [/^capture$/, captureView],
   [/^search$/, searchView],
+  [/^review$/, reviewView],
+  [/^quiz$/, quizHomeView],
+  [/^quiz\/(?<id>\d+)$/, quizView],
+  [/^map$/, mapView],
+  [/^progress$/, progressView],
+  [/^practice\/(?<kind>[a-z]+)\/(?<id>\d+)\/(?<mode>explain|rebuild)$/, practiceView],
 ];
-for (const kind of ['knowledge', 'commands', 'errors']) {
+for (const kind of ['knowledge', 'commands', 'errors', 'workflows']) {
   routes.push(
     [new RegExp(`^${kind}$`), listView(kind)],
     [new RegExp(`^${kind}/new$`), formView(kind)],
@@ -158,4 +177,62 @@ document.addEventListener('keydown', (e) => {
   }
 });
 
-render();
+// Password-protected deployments: show the sign-in screen instead of the app.
+const shell = document.querySelector('.shell');
+const loginRoot = document.getElementById('login-root');
+let signedIn = true;
+
+function showLogin() {
+  if (!signedIn && !loginRoot.hidden) return;
+  signedIn = false;
+  dirty = false;
+  shell.hidden = true;
+  loginRoot.hidden = false;
+  replaceChildren(
+    loginRoot,
+    loginView(() => {
+      signedIn = true;
+      loginRoot.hidden = true;
+      loginRoot.replaceChildren();
+      shell.hidden = false;
+      render();
+    }),
+  );
+}
+
+function enableSignOut() {
+  const foot = document.querySelector('.sidebar-foot');
+  replaceChildren(
+    foot,
+    h('span', null, 'Password protected'),
+    h(
+      'button',
+      {
+        type: 'button',
+        class: 'link-button',
+        id: 'sign-out',
+        onclick: async () => {
+          await api.logout().catch(() => {});
+          showLogin();
+        },
+      },
+      icon('logout'),
+      'Sign out',
+    ),
+  );
+}
+
+window.addEventListener('auth-required', showLogin);
+
+async function boot() {
+  try {
+    const session = await api.session();
+    if (session.authRequired) enableSignOut();
+    if (session.authRequired && !session.authenticated) return showLogin();
+  } catch {
+    /* render() shows a recoverable error if the server is unreachable */
+  }
+  render();
+}
+
+boot();

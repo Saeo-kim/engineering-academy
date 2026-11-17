@@ -2,6 +2,9 @@ import { createReadStream, existsSync, statSync } from 'node:fs';
 import { createServer } from 'node:http';
 import { dirname, extname, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { createAuth } from './auth.js';
+import { createEvaluator } from './evaluator.js';
+import { createLearning } from './learning.js';
 import { NotFoundError, ValidationError } from './repository.js';
 import { isKind } from './resources.js';
 
@@ -13,6 +16,7 @@ const MIME = {
   '.js': 'text/javascript; charset=utf-8',
   '.css': 'text/css; charset=utf-8',
   '.svg': 'image/svg+xml',
+  '.png': 'image/png',
 };
 
 const SECURITY_HEADERS = {
@@ -28,12 +32,13 @@ class HttpError extends Error {
   }
 }
 
-function send(res, status, body) {
+function send(res, status, body, headers = {}) {
   const payload = body === undefined ? '' : JSON.stringify(body);
   res.writeHead(status, {
     ...SECURITY_HEADERS,
     'Content-Type': 'application/json; charset=utf-8',
     'Cache-Control': 'no-store',
+    ...headers,
   });
   res.end(payload);
 }
@@ -63,22 +68,33 @@ function readJson(req) {
   });
 }
 
+const LOOPBACK = /^(localhost|127\.0\.0\.1|\[::1\])$/i;
+
+// "example.com" matches exactly; "*.example.com" matches any subdomain.
+export function hostMatcher(allowed = []) {
+  const patterns = allowed.map((p) => p.trim().toLowerCase()).filter(Boolean);
+  return (hostHeader) => {
+    const host = String(hostHeader).toLowerCase().replace(/:\d+$/, '');
+    if (LOOPBACK.test(host)) return true;
+    return patterns.some((p) => (p.startsWith('*.') ? host.endsWith(p.slice(1)) && host.length > p.length - 1 : host === p));
+  };
+}
+
 // Binding to loopback is not enough: a malicious website can still reach
 // localhost through the visitor's browser. Rejecting foreign Host headers stops
 // DNS rebinding, and rejecting foreign Origins stops cross-site writes.
-function guardRequest(req) {
-  const allowedHost = /^(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$/i;
+function guardRequest(req, hostAllowed) {
   const host = req.headers.host ?? '';
-  if (!allowedHost.test(host)) throw new HttpError(403, 'Forbidden host.');
+  if (!/^[a-z0-9.\-[\]:]+$/i.test(host) || !hostAllowed(host)) throw new HttpError(403, 'Forbidden host.');
   const origin = req.headers.origin;
-  if (origin && req.method !== 'GET') {
+  if (origin && req.method !== 'GET' && req.method !== 'HEAD') {
     let originHost = '';
     try {
       originHost = new URL(origin).host;
     } catch {
       /* falls through to the rejection below */
     }
-    if (originHost !== host) throw new HttpError(403, 'Forbidden origin.');
+    if (originHost.toLowerCase() !== host.toLowerCase()) throw new HttpError(403, 'Forbidden origin.');
   }
 }
 
@@ -100,23 +116,69 @@ function serveStatic(req, res, pathname) {
 }
 
 function parseId(value) {
-  if (!/^\d+$/.test(value)) throw new NotFoundError('Record not found.');
+  if (!/^\d+$/.test(value ?? '')) throw new NotFoundError('Record not found.');
   return Number(value);
 }
 
-async function routeApi(repo, req, res, url) {
+async function routeApi(ctx, req, res, url) {
+  const { repo, learning, auth, evaluator } = ctx;
   const parts = url.pathname.split('/').filter(Boolean).slice(1); // drop "api"
   const { method } = req;
   const query = Object.fromEntries(url.searchParams);
+  const route = parts.join('/');
+
+  // Session endpoints are reachable without signing in.
+  if (route === 'session' && method === 'GET') {
+    return send(res, 200, { authRequired: auth.enabled, authenticated: auth.isAuthenticated(req) });
+  }
+  if (route === 'login' && method === 'POST') {
+    if (!auth.enabled) return send(res, 200, { ok: true });
+    try {
+      const cookie = auth.login(req, await readJson(req));
+      return send(res, 200, { ok: true }, { 'Set-Cookie': cookie });
+    } catch (err) {
+      if (err.status) throw new HttpError(err.status, err.message);
+      throw err;
+    }
+  }
+  if (route === 'logout' && method === 'POST') {
+    return send(res, 200, { ok: true }, auth.enabled ? { 'Set-Cookie': auth.logout(req) } : {});
+  }
+  if (!auth.isAuthenticated(req)) throw new HttpError(401, 'Sign in to continue.');
 
   if (parts.length === 1) {
     const [name] = parts;
-    if (name === 'meta' && method === 'GET') return send(res, 200, repo.meta());
-    if (name === 'dashboard' && method === 'GET') return send(res, 200, repo.dashboard());
+    if (name === 'meta' && method === 'GET') {
+      return send(res, 200, { ...repo.meta(), evaluator: { id: evaluator.id, label: evaluator.label, description: evaluator.description, ai: evaluator.ai }, authEnabled: auth.enabled });
+    }
+    if (name === 'dashboard' && method === 'GET') return send(res, 200, { ...repo.dashboard(), learning: learning.summary() });
     if (name === 'options' && method === 'GET') return send(res, 200, repo.options());
     if (name === 'search' && method === 'GET') return send(res, 200, repo.search(query.q ?? ''));
     if (name === 'capture' && method === 'POST') return send(res, 201, repo.capture(await readJson(req)));
     if (name === 'samples' && method === 'DELETE') return send(res, 200, { removed: repo.removeSamples() });
+    if (name === 'review' && method === 'GET') return send(res, 200, learning.reviewQueue());
+    if (name === 'progress' && method === 'GET') return send(res, 200, learning.progress());
+    if (name === 'map' && method === 'GET') return send(res, 200, learning.map());
+    if (name === 'links' && method === 'POST') return send(res, 201, learning.addLink(await readJson(req)));
+    if (name === 'links' && method === 'DELETE') return send(res, 200, learning.removeLink(await readJson(req)));
+    if (name === 'quizzes' && method === 'GET') return send(res, 200, learning.quizHistory());
+    if (name === 'quizzes' && method === 'POST') return send(res, 201, learning.createQuiz(await readJson(req)));
+  }
+
+  if (parts[0] === 'quizzes' && parts.length === 2 && method === 'GET') return send(res, 200, learning.getQuiz(parseId(parts[1])));
+  if (parts[0] === 'quizzes' && parts.length === 3 && parts[2] === 'submit' && method === 'POST') {
+    return send(res, 200, learning.submitQuiz(parseId(parts[1]), await readJson(req)));
+  }
+  if (parts[0] === 'attempts' && parts.length === 3 && parts[2] === 'rating' && method === 'POST') {
+    return send(res, 200, learning.rateAttempt(parseId(parts[1]), await readJson(req)));
+  }
+  if ((parts[0] === 'learn' || parts[0] === 'review') && isKind(parts[1])) {
+    const id = parseId(parts[2]);
+    if (parts[0] === 'learn' && parts.length === 3 && method === 'GET') return send(res, 200, learning.state(parts[1], id));
+    if (parts[0] === 'learn' && parts.length === 4 && parts[3] === 'attempts' && method === 'POST') {
+      return send(res, 201, learning.attempt(parts[1], id, await readJson(req)));
+    }
+    if (parts[0] === 'review' && parts.length === 3 && method === 'POST') return send(res, 200, learning.review(parts[1], id, await readJson(req)));
   }
 
   const [kind, rawId, action] = parts;
@@ -141,13 +203,23 @@ async function routeApi(repo, req, res, url) {
   throw new HttpError(404, 'Unknown API route.');
 }
 
-export function createApp(repo) {
+export function createApp(repo, options = {}) {
+  const evaluator = options.evaluator ?? createEvaluator();
+  const ctx = {
+    repo,
+    evaluator,
+    learning: options.learning ?? createLearning(repo, evaluator),
+    auth: options.auth ?? createAuth(),
+  };
+  const hostAllowed = hostMatcher(options.allowedHosts);
+
   return createServer(async (req, res) => {
     try {
-      guardRequest(req);
+      guardRequest(req, hostAllowed);
       const url = new URL(req.url, 'http://localhost');
+      if (url.pathname === '/healthz') return send(res, 200, { ok: true });
       if (url.pathname === '/api' || url.pathname.startsWith('/api/')) {
-        return await routeApi(repo, req, res, url);
+        return await routeApi(ctx, req, res, url);
       }
       if (req.method !== 'GET' && req.method !== 'HEAD') throw new HttpError(405, 'Method not allowed.');
       return serveStatic(req, res, url.pathname);

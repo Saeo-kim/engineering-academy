@@ -37,6 +37,12 @@ const ICONS = {
   errors: 'M12 3l10 18H2zM12 10v5M12 18v.5',
   commands: 'M4 5l7 7-7 7M13 19h8',
   search: 'M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14zM21 21l-5-5',
+  workflows: 'M5 4h4v4H5zM15 10h4v4h-4zM5 16h4v4H5zM9 6h3a2 2 0 0 1 2 2v2.5M9 18h3a2 2 0 0 0 2-2v-2',
+  review: 'M4 12a8 8 0 1 0 2.4-5.7M4 4v4h4M12 8v4l3 2',
+  quiz: 'M9 11l2 2 4-4M5 4h14v16H5z',
+  map: 'M6 6a2 2 0 1 0 0 .1M18 8a2 2 0 1 0 0 .1M12 18a2 2 0 1 0 0 .1M7.7 7l8.6.6M7 8l4 8.3M17 10l-4 6.3',
+  progress: 'M4 20V10M10 20V4M16 20v-7M22 20H2',
+  logout: 'M15 4h4v16h-4M10 8l-4 4 4 4M6 12h10',
 };
 
 export function icon(name) {

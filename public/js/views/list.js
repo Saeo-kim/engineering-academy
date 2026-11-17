@@ -32,6 +32,15 @@ const renderers = {
       record.purpose && h('p', { class: 'excerpt' }, preview(record.purpose)),
       foot(record),
     ),
+  workflows: (record) =>
+    h(
+      'a',
+      { class: 'card workflow-card', href: recordHref('workflows', record.id) },
+      h('div', { class: 'card-top' }, h('span', { class: 'eyebrow' }, `${record.steps.split('\n').filter((l) => l.trim()).length} steps`), sampleBadge(record), progressMeter('workflows', record, { compact: true })),
+      h('h3', null, record.title),
+      record.goal && h('p', { class: 'excerpt' }, preview(record.goal)),
+      foot(record),
+    ),
   errors: (record) =>
     h(
       'a',

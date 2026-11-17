@@ -18,11 +18,11 @@ const PORT = 4399;
 const BASE = `http://127.0.0.1:${PORT}/`;
 
 let server;
-function startServer() {
+function startServer(extraEnv = {}) {
   return new Promise((resolve, reject) => {
     server = spawn(process.execPath, ['--disable-warning=ExperimentalWarning', 'server/index.js'], {
       cwd: root,
-      env: { PATH: process.env.PATH, SystemRoot: process.env.SystemRoot, PORT: String(PORT), ACADEMY_DB: join(temp, 'e2e.db') },
+      env: { PATH: process.env.PATH, SystemRoot: process.env.SystemRoot, PORT: String(PORT), ACADEMY_DB: join(temp, 'e2e.db'), ...extraEnv },
     });
     let log = '';
     const onData = (chunk) => {
@@ -93,7 +93,9 @@ await step('Dashboard shows totals, recent captures, activity, and studied conce
   assert.ok((await page.count('#recently-studied li')) > 0);
   assert.equal(await page.count('#heatmap .cell'), 182);
   assert.ok((await page.count('#heatmap .cell.l1, #heatmap .cell.l2, #heatmap .cell.l3, #heatmap .cell.l4')) > 0);
-  assert.match(await page.text('.notice'), /11 example records/);
+  assert.match(await page.text('.notice'), /13 example records/);
+  assert.equal(await statValue('Workflows'), 2);
+  assert.equal(await page.count('#learning-loop .loop-stages li'), 5);
   assert.ok((await page.count('#recent-captures .badge.sample')) > 0, 'examples are labelled');
   await shot('dashboard');
 });
@@ -104,6 +106,11 @@ await step('Sidebar navigation reaches every section', async () => {
     ['Knowledge Library', 'Knowledge Library'],
     ['Error Archive', 'Error Archive'],
     ['Command Library', 'Command Library'],
+    ['Workflows', 'Workflows'],
+    ['Review Center', 'Review Center'],
+    ['Assessment', 'Assessment'],
+    ['Knowledge Map', 'Knowledge Map'],
+    ['Progress', 'Progress'],
     ['Search', 'Search'],
     ['Dashboard', 'Dashboard'],
   ];
@@ -189,11 +196,11 @@ await step('Global search finds saved knowledge and highlights it', async () => 
   assert.equal(await page.evaluate(`document.querySelector('#global-search').value`), '', 'search box clears on leaving');
 });
 
-await step('Global search spans knowledge, commands, and errors', async () => {
+await step('Global search spans knowledge, commands, errors, and workflows', async () => {
   await page.route('#/search?q=git');
   await page.waitFor(`document.querySelector('#search-results')`);
   const kinds = await page.evaluate(`[...new Set([...document.querySelectorAll('#search-results a')].map((a) => a.dataset.kind))].sort().join()`);
-  assert.equal(kinds, 'commands,errors,knowledge');
+  assert.equal(kinds, 'commands,errors,knowledge,workflows');
   await shot('search');
   await page.click('[data-tab="errors"]');
   await page.waitFor(`[...document.querySelectorAll('#search-results a')].every((a) => a.dataset.kind === 'errors')`);
@@ -235,6 +242,7 @@ await step('Quick Capture saves every capture type to the right collection', asy
     ['snippet', 'Knowledge Library', 'knowledge', 'const capturedSnippet = 1;'],
     ['ai_explanation', 'Knowledge Library', 'knowledge', 'Explained by the assistant.'],
     ['note', 'Knowledge Library', 'knowledge', 'A plain technical note.'],
+    ['workflow', 'Workflows', 'workflows', 'npm ci && npm test'],
   ];
   for (const [type, destination, kind, content] of cases) {
     await page.route('#/capture');
@@ -442,8 +450,157 @@ await step('Keyboard shortcuts and the activity chart interactions work', async 
   await page.waitFor(`document.querySelector('#capture-result .notice')?.innerText.includes('Saved with the keyboard')`);
 });
 
+await step('Workflows: create one through the form and see its numbered sections', async () => {
+  await page.route('#/workflows');
+  await page.waitFor(`document.querySelector('#result-count')?.innerText.startsWith('3 ')`); // 2 examples + 1 captured
+  await page.click('#new-record');
+  await page.waitFor(`document.querySelector('#record-form')`);
+  await page.type('#f-title', 'E2E Release a version');
+  await page.type('#f-goal', 'Publish a tagged release.');
+  await page.type('#f-steps', 'npm test\ngit tag v1.0.0\ngit push --tags');
+  await page.type('#f-verification', 'The tag is visible on the remote.');
+  await page.click('#save-record');
+  await page.waitFor(`document.querySelector('#detail h1')?.innerText === 'E2E Release a version'`);
+  for (const heading of ['Goal', 'Prerequisites', 'Steps', 'Verification', 'Pitfalls']) assert.ok((await page.text('#detail')).includes(heading), heading);
+  assert.equal(await page.text('[data-field="steps"] pre'), 'npm test\ngit tag v1.0.0\ngit push --tags');
+  assert.equal(await page.count('#stage-stepper li'), 5);
+  await shot('workflow-detail');
+});
+
+await step('Explain-back scores an answer, reveals the notes, and schedules a review', async () => {
+  await page.route('#/knowledge/2');
+  await page.waitFor(`document.querySelector('#learning #stage-stepper')`);
+  await page.click('#practice-explain');
+  await page.waitFor(`document.querySelector('#practice-form')`);
+  assert.match(await page.text('#practice-prompt'), /JavaScript event loop/);
+  assert.equal(await page.exists('#practice-result'), false, 'notes stay hidden before checking');
+  await page.click('#check-answer');
+  await page.waitFor(`document.querySelector('#practice-form .form-error:not([hidden])')`);
+  await page.type('#practice-answer', 'The event loop is how a single-threaded runtime schedules work. It runs the current task, then drains the microtask queue, so promise callbacks run before a setTimeout task.');
+  await page.click('#check-answer');
+  await page.waitFor(`document.querySelector('#practice-result')`);
+  assert.ok(Number(await page.text('#score strong')) >= 60);
+  assert.ok((await page.count('#matched-terms .chip')) > 0);
+  assert.ok((await page.text('#practice-result')).includes('Your notes'));
+  await shot('practice-explain');
+  await page.click('.rate[data-rating="3"]');
+  await page.waitFor(`document.querySelector('#rating-status')?.innerText.startsWith('Rated Good')`);
+  assert.ok(await page.exists('#try-again'));
+});
+
+await step('Rebuild challenge compares a command line by line', async () => {
+  await page.route('#/practice/commands/1/rebuild');
+  await page.waitFor(`document.querySelector('#practice-answer')`);
+  await page.type('#practice-answer', 'netstat -ano | findstr :8080');
+  await page.click('#check-answer');
+  await page.waitFor(`document.querySelector('#practice-result')`);
+  assert.equal(await page.text('#score strong'), '100');
+  assert.equal(await page.count('#line-diff .diff-line.present'), 1);
+  await page.route('#/');
+  await page.route('#/practice/commands/1/rebuild');
+  await page.waitFor(`document.querySelector('#practice-answer')`);
+  await page.type('#practice-answer', 'netstat | findstr 8080');
+  await page.click('#check-answer');
+  await page.waitFor(`document.querySelector('#practice-result')`);
+  assert.ok(Number(await page.text('#score strong')) < 80);
+  assert.equal(await page.count('#line-diff .diff-line.missing'), 1);
+  await shot('practice-rebuild');
+});
+
+await step('Locked exercises say what to write first', async () => {
+  await page.route('#/knowledge/5');
+  await page.waitFor(`document.querySelector('#practice-explain')`);
+  assert.equal(await page.evaluate(`document.querySelector('#practice-explain').disabled`), true);
+  assert.match(await page.text('.learning-locked'), /What is it/);
+  await page.route('#/practice/knowledge/5/explain');
+  await page.waitFor(`document.querySelector('#practice-locked')`);
+  assert.match(await page.text('#practice-locked'), /Write your notes/);
+});
+
+await step('Review Center runs a keyboard-driven spaced-repetition session', async () => {
+  await page.route('#/review');
+  await page.waitFor(`document.querySelector('#start-review')`);
+  const before = Number(await page.text('#stat-due .stat-value')) + Number(await page.text('#stat-new .stat-value'));
+  assert.ok(before >= 2, `cards available: ${before}`);
+  await page.click('#start-review');
+  await page.waitFor(`document.querySelector('#flashcard')`);
+  const firstTitle = await page.text('#flashcard h2');
+  await page.evaluate(`document.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', bubbles: true }))`);
+  await page.waitFor(`document.querySelector('.card-answer .rate')`);
+  assert.ok((await page.text('.card-answer')).includes('Your notes'));
+  await shot('review-card');
+  await page.evaluate(`document.dispatchEvent(new KeyboardEvent('keydown', { key: '3', bubbles: true }))`);
+  await page.waitFor(`document.querySelector('.review-progress')?.innerText.startsWith('Card 2')`);
+  assert.notEqual(await page.text('#flashcard h2'), firstTitle);
+  await page.click('#show-answer');
+  await page.click('.rate[data-rating="4"]');
+  await page.waitFor(`document.querySelector('.review-progress')?.innerText.startsWith('Card 3') || document.querySelector('#review-summary')`);
+  await page.route('#/');
+  await page.route('#/review');
+  await page.waitFor(`document.querySelector('#stat-scheduled')`);
+  const after = Number(await page.text('#stat-due .stat-value')) + Number(await page.text('#stat-new .stat-value'));
+  assert.equal(after, before - 2, 'reviewed cards leave the queue');
+});
+
+await step('Assessment generates questions, grades them, and keeps history', async () => {
+  await page.route('#/quiz');
+  await page.waitFor(`document.querySelector('#start-quiz')`);
+  await page.select('#quiz-form select[name="questions"]', '5');
+  await page.click('#start-quiz');
+  await page.waitFor(`document.querySelector('#quiz-run .question')`);
+  const total = await page.count('#quiz-run .question');
+  assert.ok(total >= 3 && total <= 5, `questions: ${total}`);
+  assert.ok((await page.count('#quiz-run .question:first-child .option')) >= 3);
+  await page.evaluate(`document.querySelectorAll('#quiz-run .question').forEach((q) => q.querySelector('input').click())`);
+  await page.waitFor(`document.querySelector('#answered').innerText.startsWith('${total} of')`);
+  await shot('quiz');
+  await page.click('#submit-quiz');
+  await page.waitFor(`document.querySelector('#quiz-result')`);
+  assert.match(await page.text('#quiz-result h1'), new RegExp(`of ${total} correct`));
+  assert.equal(await page.count('.question.correct, .question.wrong'), total);
+  assert.equal(await page.count('.option.is-answer'), total);
+  await shot('quiz-result');
+  await page.route('#/quiz');
+  await page.waitFor(`document.querySelector('#quiz-history tbody tr')`);
+  assert.match(await page.text('#quiz-history tbody tr'), /Review/);
+});
+
+await step('Knowledge Map draws every record and accepts a suggested link', async () => {
+  await page.route('#/map');
+  await page.waitFor(`document.querySelector('#map-svg')`);
+  const nodes = await page.count('#map-svg .map-node');
+  const totals = await page.evaluate(`fetch('/api/dashboard').then((r) => r.json()).then((d) => d.totals.knowledge + d.totals.commands + d.totals.errors + d.totals.workflows)`);
+  assert.equal(nodes, totals);
+  const edges = await page.count('#map-svg .map-edge');
+  await page.evaluate(`document.querySelector('#map-svg .map-node').dispatchEvent(new MouseEvent('mouseenter'))`);
+  assert.ok(await page.evaluate(`document.querySelector('#map-svg').classList.contains('focusing')`));
+  await shot('map');
+  assert.ok((await page.count('#suggestions li')) > 0, 'shared tags produce suggestions');
+  await page.click('#suggestions button');
+  await page.waitFor(`document.querySelectorAll('#map-svg .map-edge').length === ${edges + 1}`);
+  await page.click('#linked-only');
+  await page.waitFor(`document.querySelectorAll('#map-svg .map-node').length < ${nodes}`);
+  await page.select('.filter select[name="type"]', 'workflows');
+  await page.waitFor(`[...document.querySelectorAll('#map-svg .map-node')].every((n) => n.classList.contains('kind-workflows'))`);
+});
+
+await step('Progress shows the learning funnel, focus list, and recent practice', async () => {
+  await page.route('#/progress');
+  await page.waitFor(`document.querySelector('#funnel')`);
+  assert.equal(await page.count('#funnel li'), 5);
+  const counts = await page.evaluate(`[...document.querySelectorAll('#funnel .bar-value')].map((e) => Number(e.innerText))`);
+  assert.ok(counts.every((c, i) => i === 0 || c <= counts[i - 1]), `funnel narrows: ${counts}`);
+  assert.ok((await page.count('#focus li')) > 0);
+  assert.ok((await page.count('#recent-attempts li')) >= 4, 'practice from earlier steps is listed');
+  assert.ok((await page.count('#category-table tbody tr')) > 0);
+  assert.equal(await page.count('#weekly .column'), 8);
+  await shot('progress');
+  await page.route('#/');
+  assert.ok((await page.text('#learning-loop')).includes('Verified'));
+});
+
 await step('Layout has no horizontal overflow from phone to desktop', async () => {
-  const routes = ['#/', '#/capture', '#/knowledge', '#/errors', '#/commands', '#/search?q=git', '#/knowledge/1', '#/errors/1', '#/commands/1', '#/knowledge/1/edit'];
+  const routes = ['#/', '#/capture', '#/knowledge', '#/errors', '#/commands', '#/workflows', '#/search?q=git', '#/knowledge/1', '#/errors/1', '#/commands/1', '#/workflows/1', '#/knowledge/1/edit', '#/practice/knowledge/2/explain', '#/practice/commands/1/rebuild', '#/review', '#/quiz', '#/map', '#/progress'];
   for (const [width, height, mobile] of [[390, 844, true], [768, 1024, false], [1024, 768, false], [1440, 900, false]]) {
     await page.setViewport(width, height, mobile);
     for (const route of routes) {
@@ -452,7 +609,7 @@ await step('Layout has no horizontal overflow from phone to desktop', async () =
       await new Promise((r) => setTimeout(r, 60));
       const overflow = await page.evaluate('document.documentElement.scrollWidth - window.innerWidth');
       assert.ok(overflow <= 0, `${route} overflows by ${overflow}px at ${width}px`);
-      if (width === 390 && ['#/', '#/knowledge', '#/errors/1'].includes(route)) {
+      if (width === 390 && ['#/', '#/knowledge', '#/errors/1', '#/review', '#/map', '#/progress'].includes(route)) {
         await shot(`mobile-${route.replace(/\W+/g, '-')}`);
       }
     }
@@ -476,7 +633,7 @@ await step('Example records can be removed and do not return', async () => {
 
 await step('Empty states render safely with no data at all', async () => {
   await page.evaluate(`(async () => {
-    for (const kind of ['knowledge', 'commands', 'errors']) {
+    for (const kind of ['knowledge', 'commands', 'errors', 'workflows']) {
       const rows = await (await fetch('/api/' + kind)).json();
       for (const row of rows) await fetch('/api/' + kind + '/' + row.id, { method: 'DELETE' });
     }
@@ -486,13 +643,20 @@ await step('Empty states render safely with no data at all', async () => {
   assert.equal(await page.text('#view .empty h3'), 'Nothing captured yet');
   assert.equal(await statValue('Knowledge entries'), 0);
   await shot('empty-dashboard');
-  for (const [kind, heading] of [['knowledge', 'No knowledge entries yet'], ['errors', 'No error records yet'], ['commands', 'No commands yet']]) {
+  for (const [kind, heading] of [['knowledge', 'No knowledge entries yet'], ['errors', 'No error records yet'], ['commands', 'No commands yet'], ['workflows', 'No workflows yet']]) {
     await page.route(`#/${kind}`);
     await page.waitFor(`document.querySelector('#results .empty')`);
     assert.equal(await page.text('#results .empty h3'), heading);
   }
   await page.route(`#/knowledge/new`);
   assert.match(await page.text('#link-picker'), /No other records/);
+  for (const [route, text] of [['#/review', 'Nothing to review'], ['#/map', 'Nothing to map yet'], ['#/progress', 'No records yet']]) {
+    await page.route(route);
+    assert.ok((await page.text('#view .empty')).includes(text), route);
+  }
+  await page.route('#/quiz');
+  await page.click('#start-quiz');
+  await page.waitFor(`document.querySelector('#quiz-form .form-error:not([hidden])')?.innerText.includes('Not enough material')`);
 });
 
 await step('A stopped server shows a recoverable error, not a blank page', async () => {
@@ -502,6 +666,32 @@ await step('A stopped server shows a recoverable error, not a blank page', async
   await startServer();
   await page.click('#view .empty button');
   await page.waitFor(`document.querySelector('#view h1')?.innerText === 'Knowledge Library'`);
+});
+
+await step('Password-protected mode requires signing in and supports signing out', async () => {
+  await stopServer();
+  await startServer({ ACADEMY_PASSWORD: 'e2e-very-long-password' });
+  await page.reload();
+  await page.waitFor(`document.querySelector('#login-form')`, { label: 'login form' });
+  assert.equal(await page.evaluate(`document.querySelector('.shell').hidden`), true);
+  await shot('login');
+  await page.type('#login-password', 'wrong password');
+  await page.click('#login-submit');
+  await page.waitFor(`document.querySelector('#login-form .form-error:not([hidden])')?.innerText === 'Wrong password.'`);
+  await page.evaluate(`document.querySelector('#login-password').value = ''`);
+  await page.type('#login-password', 'e2e-very-long-password');
+  await page.click('#login-submit');
+  await page.waitFor(`!document.querySelector('.shell').hidden && document.querySelector('#view h1')`);
+  assert.ok(await page.exists('#sign-out'));
+  await page.reload();
+  await page.waitFor(`document.querySelector('#view')?.dataset.ready && document.querySelector('#sign-out')`, { label: 'session survives reload' });
+  await page.click('#sign-out');
+  await page.waitFor(`document.querySelector('#login-form')`);
+  assert.equal((await page.evaluate(`fetch('/api/meta').then((r) => r.status)`)), 401);
+  await stopServer();
+  await startServer();
+  await page.reload();
+  await page.waitFor(`document.querySelector('#view')?.dataset.ready`);
 });
 
 await step('No uncaught exceptions, console errors, or CSP violations', async () => {

@@ -128,7 +128,7 @@ export async function launch({ profileDir, width = 1440, height = 960 }) {
     async reload() {
       await evaluate(`window.__preReload = true`);
       await send('Page.reload', { ignoreCache: true });
-      await waitFor(`!window.__preReload && document.readyState === 'complete' && Boolean(document.getElementById('view').dataset.ready)`, { label: 'reload' });
+      await waitFor(`!window.__preReload && document.readyState === 'complete' && (Boolean(document.getElementById('view').dataset.ready) || Boolean(document.getElementById('login-form')))`, { label: 'reload' });
     },
     async click(selector) {
       await waitFor(`document.querySelector(${quote(selector)})`, { label: selector });

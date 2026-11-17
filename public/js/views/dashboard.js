@@ -1,6 +1,5 @@
 import { api } from '../api.js';
-import { categoryLabel, emptyState, kindBadge, pageHeader, recordHref, sampleBadge } from '../components.js';
-import { confirmDialog, formatDate, h, timeAgo, toast } from '../dom.js';
+import { categoryLabel, emptyState, kindBadge, pageHeader, recordHref, sampleBadge } from '../components.js';import { confirmDialog, formatDate, h, timeAgo, toast } from '../dom.js';
 
 const WEEKS = 26;
 const dayKey = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -61,7 +60,9 @@ function activityChart(activity, hasSamples) {
     const key = dayKey(date);
     if (i % 7 === 0) {
       const week = i / 7;
-      const showMonth = date.getMonth() !== lastMonth;
+      // A month that starts in the first column's week would collide with the next label.
+      const nextMonday = new Date(date.getFullYear(), date.getMonth(), date.getDate() + 7);
+      const showMonth = date.getMonth() !== lastMonth && !(week === 0 && nextMonday.getMonth() !== date.getMonth());
       months.push(
         h(
           'span',
@@ -156,6 +157,29 @@ function activityChart(activity, hasSamples) {
   );
 }
 
+function learningPanel(learning) {
+  const { stages, total, due, newCards } = learning;
+  return h(
+    'section',
+    { class: 'panel loop', id: 'learning-loop' },
+    h('div', { class: 'panel-head' }, h('h2', null, 'Learning loop'), h('a', { class: 'panel-link', href: '#/progress' }, 'Progress →')),
+    h(
+      'ol',
+      { class: 'loop-stages' },
+      stages.map((s) =>
+        h('li', { dataset: { stage: s.key } }, h('strong', null, s.count), h('span', null, s.label), h('span', { class: 'loop-bar' }, h('span', { style: { width: `${total ? (s.count / total) * 100 : 0}%` } }))),
+      ),
+    ),
+    h(
+      'div',
+      { class: 'loop-actions' },
+      h('a', { class: `button${due + newCards ? ' primary' : ''}`, href: '#/review', id: 'dash-review' }, due ? `Review ${due} due` : newCards ? `Start ${newCards} new cards` : 'Review Center'),
+      h('a', { class: 'button', href: '#/quiz' }, 'Take an assessment'),
+      learning.focus[0] && h('span', { class: 'hint' }, 'Next up: ', h('a', { href: recordHref(learning.focus[0].kind, learning.focus[0].id) }, learning.focus[0].title)),
+    ),
+  );
+}
+
 function recordRow(row, meta) {
   return h(
     'li',
@@ -174,7 +198,8 @@ function recordRow(row, meta) {
 export async function dashboardView({ rerender }) {
   const data = await api.dashboard();
   const { totals } = data;
-  const isBlank = totals.knowledge + totals.errors + totals.commands === 0;
+  const isBlank = totals.knowledge + totals.errors + totals.commands + totals.workflows === 0;
+  const { learning } = data;
 
   const removeSamples = async () => {
     const ok = await confirmDialog({
@@ -206,6 +231,7 @@ export async function dashboardView({ rerender }) {
       statCard('Knowledge entries', totals.knowledge, 'in the library', '#/knowledge'),
       statCard('Recorded errors', totals.errors, `${totals.unresolved} open`, '#/errors'),
       statCard('Saved commands', totals.commands, 'ready to reuse', '#/commands'),
+      statCard('Workflows', totals.workflows, 'repeatable procedures', '#/workflows'),
       statCard('Studied this week', totals.studiedThisWeek, 'in the last 7 days', '#/knowledge'),
     ),
     isBlank
@@ -217,6 +243,7 @@ export async function dashboardView({ rerender }) {
       : h(
           'div',
           { class: 'dash-grid' },
+          learningPanel(learning),
           activityChart(data.activity, totals.samples > 0),
           h(
             'section',

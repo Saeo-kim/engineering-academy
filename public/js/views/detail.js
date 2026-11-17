@@ -1,5 +1,13 @@
 import { api } from '../api.js';
-import { categoryLabel, kindBadge, progressMeter, recordHref, sampleBadge, statusBadge } from '../components.js';
+import { categoryLabel, kindBadge, practiceHref, progressMeter, recordHref, sampleBadge, stageStepper, statusBadge } from '../components.js';
+
+function timeAgoFuture(iso) {
+  const ms = new Date(iso) - Date.now();
+  if (ms <= 0) return 'is due now';
+  const days = Math.round(ms / 86_400_000);
+  if (days < 1) return 'later today';
+  return days === 1 ? 'tomorrow' : `in ${days} days`;
+}
 import { codeBlock, confirmDialog, formatDate, h, replaceChildren, richText, timeAgo, toast } from '../dom.js';
 import { KIND_UI } from '../schema.js';
 
@@ -15,7 +23,33 @@ export function detailView(kind) {
   return async ({ params, rerender }) => {
     const ui = KIND_UI[kind];
     const id = Number(params.id);
-    const record = await api.get(kind, id);
+    const [record, learning] = await Promise.all([api.get(kind, id), api.learning(kind, id)]);
+
+    const exerciseButton = (mode, label) => {
+      const ex = learning.exercises[mode];
+      return ex.available
+        ? h('a', { class: 'button', href: practiceHref(kind, id, mode), id: `practice-${mode}` }, label)
+        : h('button', { type: 'button', class: 'button', disabled: true, title: ex.missing, id: `practice-${mode}` }, label);
+    };
+    const lastAttempt = learning.attempts[0];
+    const learningPanel = h(
+      'section',
+      { class: 'panel learning-panel', id: 'learning' },
+      h('div', { class: 'panel-head' }, h('h2', null, 'Learning loop'), h('span', { class: 'panel-note' }, `Stage ${learning.stage} of 5`)),
+      h('div', { class: 'learning-body' }, stageStepper(learning.steps)),
+      h(
+        'div',
+        { class: 'learning-actions' },
+        exerciseButton('explain', 'Explain it back'),
+        exerciseButton('rebuild', 'Rebuild challenge'),
+        h('span', { class: 'hint' }, [
+          learning.review ? `Next review ${timeAgoFuture(learning.review.due_at)}` : 'Not in review yet',
+          lastAttempt ? ` · last practice ${timeAgo(lastAttempt.created_at)}` : '',
+        ]),
+      ),
+      [learning.exercises.explain, learning.exercises.rebuild].some((e) => !e.available) &&
+        h('p', { class: 'hint learning-locked' }, [learning.exercises.explain, learning.exercises.rebuild].filter((e) => !e.available).map((e) => e.missing).join(' ')),
+    );
 
     const studyStatus = h('span', { class: 'study-status', id: 'study-status' });
     const showStudy = (r) => {
@@ -95,6 +129,7 @@ export function detailView(kind) {
           h('button', { type: 'button', class: 'button danger-quiet', id: 'delete-record', onclick: onDelete }, 'Delete'),
         ),
       ),
+      learningPanel,
       body,
       h(
         'section',

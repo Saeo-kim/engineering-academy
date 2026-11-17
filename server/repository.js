@@ -122,6 +122,11 @@ export function createRepository(db) {
     );
   }
 
+  function forgetLearning(kind, id) {
+    db.prepare('DELETE FROM attempts WHERE kind = ? AND item_id = ?').run(kind, id);
+    db.prepare('DELETE FROM reviews WHERE kind = ? AND item_id = ?').run(kind, id);
+  }
+
   const rawGet = (kind, id) => db.prepare(`SELECT * FROM ${RESOURCES[kind].table} WHERE id = ?`).get(id);
 
   function requireRow(kind, id) {
@@ -240,6 +245,7 @@ export function createRepository(db) {
     transaction(() => {
       db.prepare(`DELETE FROM ${RESOURCES[kind].table} WHERE id = ?`).run(id);
       db.prepare('DELETE FROM links WHERE (a_kind = ? AND a_id = ?) OR (b_kind = ? AND b_id = ?)').run(kind, id, kind, id);
+      forgetLearning(kind, id);
       logActivity('deleted', kind, id, existing.title, existing.is_sample);
     });
   }
@@ -265,6 +271,7 @@ export function createRepository(db) {
     let payload;
     if (type.kind === 'commands') payload = { ...shared, command: input.content };
     else if (type.kind === 'errors') payload = { ...shared, error_message: input.content };
+    else if (type.kind === 'workflows') payload = { ...shared, steps: input.content };
     else payload = { ...shared, content: input.content, capture_type: type.id };
     return { kind: type.kind, record: create(type.kind, payload) };
   }
@@ -322,6 +329,7 @@ export function createRepository(db) {
         knowledge: count('knowledge'),
         errors: count('errors'),
         commands: count('commands'),
+        workflows: count('workflows'),
         unresolved: count('errors', "WHERE trim(solution) = ''"),
         studiedThisWeek: db
           .prepare("SELECT count(*) AS n FROM activity WHERE action = 'studied' AND date(at, 'localtime') >= ?")
@@ -378,6 +386,7 @@ export function createRepository(db) {
         const table = RESOURCES[kind].table;
         for (const { id } of db.prepare(`SELECT id FROM ${table} WHERE is_sample = 1`).all()) {
           db.prepare('DELETE FROM links WHERE (a_kind = ? AND a_id = ?) OR (b_kind = ? AND b_id = ?)').run(kind, id, kind, id);
+          forgetLearning(kind, id);
         }
         removed += Number(db.prepare(`DELETE FROM ${table} WHERE is_sample = 1`).run().changes);
       }
@@ -400,6 +409,6 @@ export function createRepository(db) {
     options,
     removeSamples,
     // Used by the seeder only.
-    internals: { clean, insertRow, logActivity, transaction, orderedPair, db },
+    internals: { clean, insertRow, logActivity, transaction, orderedPair, rawGet, requireRow, decode, db },
   };
 }

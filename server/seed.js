@@ -174,7 +174,39 @@ const ERRORS = [
   },
 ];
 
+const WORKFLOWS = [
+  {
+    key: 'feature-branch',
+    daysAgo: 4,
+    title: 'Ship a change through a feature branch and pull request',
+    category: 'Git / GitHub',
+    tags: ['git', 'pull-request'],
+    goal: 'Get a change reviewed and merged into main without breaking main or rewriting anyone else’s history.',
+    prerequisites: 'A clean working tree (`git status` shows nothing) and an up-to-date local main.',
+    steps:
+      'git switch main\ngit pull --ff-only\ngit switch -c feature/short-name\n# make the change, run the tests\ngit add -p\ngit commit -m "Explain why, not just what"\ngit push -u origin feature/short-name\n# open the pull request, address review, merge',
+    verification: 'CI is green on the pull request, and after merging `git log --oneline main` shows the commit.',
+    pitfalls: 'Branching from a stale main, which causes avoidable conflicts. Using `git add .` and committing unrelated files.',
+  },
+  {
+    key: 'spring-endpoint',
+    daysAgo: 8,
+    title: 'Add a REST endpoint to a Spring Boot service',
+    category: 'Spring Boot',
+    tags: ['rest', 'testing'],
+    goal: 'Expose a new read-only endpoint with validation and a test that proves it works.',
+    prerequisites: 'The service builds and its existing tests pass.',
+    steps:
+      '1. Write a failing `@WebMvcTest` for GET /api/orders/{id}.\n2. Add a DTO record for the response.\n3. Add the controller method with `@GetMapping` and `@PathVariable`.\n4. Map not-found to 404 in a `@ControllerAdvice`.\n5. Run the test, then the whole suite.',
+    verification: 'The new test passes, and `curl localhost:8080/api/orders/1` returns JSON with status 200.',
+    pitfalls: 'Returning the JPA entity directly, which leaks fields and can trigger lazy-loading errors during serialisation.',
+  },
+];
+
 const LINKS = [
+  ['workflows:feature-branch', 'knowledge:rebase'],
+  ['workflows:feature-branch', 'errors:non-fast-forward'],
+  ['workflows:spring-endpoint', 'knowledge:n-plus-one'],
   ['commands:find-port', 'errors:port-in-use'],
   ['knowledge:rebase', 'errors:non-fast-forward'],
   ['knowledge:rebase', 'commands:undo-commit'],
@@ -187,6 +219,16 @@ const STUDY_HISTORY = [
   ['knowledge', 'event-loop', [1, 5, 12, 20]],
   ['errors', 'port-in-use', [3, 10]],
   ['commands', 'undo-commit', [4, 18]],
+];
+
+// [kind, key, mode, score, rating, days ago], so the learning pages are not blank.
+const PRACTICE_HISTORY = [
+  ['knowledge', 'event-loop', 'explain', 72, 3, 5],
+  ['knowledge', 'event-loop', 'rebuild', 88, 3, 5],
+  ['knowledge', 'event-loop', 'review', null, 3, 1],
+  ['knowledge', 'n-plus-one', 'explain', 54, 2, 6],
+  ['commands', 'undo-commit', 'rebuild', 100, 4, 4],
+  ['errors', 'port-in-use', 'explain', 81, 3, 3],
 ];
 
 const SEED_FLAG = 'sample_data_seeded';
@@ -220,6 +262,7 @@ export function seedIfFirstRun(repo) {
     insertAll('knowledge', KNOWLEDGE);
     insertAll('commands', COMMANDS);
     insertAll('errors', ERRORS);
+    insertAll('workflows', WORKFLOWS);
 
     const insertLink = db.prepare('INSERT OR IGNORE INTO links (a_kind, a_id, b_kind, b_id) VALUES (?, ?, ?, ?)');
     for (const [a, b] of LINKS) {
@@ -230,7 +273,7 @@ export function seedIfFirstRun(repo) {
 
     for (const [kind, key, days] of STUDY_HISTORY) {
       const id = ids[`${kind}:${key}`];
-      const title = [...KNOWLEDGE, ...COMMANDS, ...ERRORS].find((r) => r.key === key).title;
+      const title = [...KNOWLEDGE, ...COMMANDS, ...ERRORS, ...WORKFLOWS].find((r) => r.key === key).title;
       for (const daysAgo of [...days].sort((x, y) => y - x)) {
         logActivity('studied', kind, id, title, true, dateFor(daysAgo, 20).toISOString());
       }
@@ -239,6 +282,25 @@ export function seedIfFirstRun(repo) {
         days.length,
         id,
       );
+    }
+    const insertAttempt = db.prepare(
+      'INSERT INTO attempts (kind, item_id, mode, response, score, rating, is_sample, created_at) VALUES (?, ?, ?, ?, ?, ?, 1, ?)',
+    );
+    const ratedSoFar = new Map();
+    for (const [kind, key, mode, score, rating, daysAgo] of PRACTICE_HISTORY) {
+      const id = ids[`${kind}:${key}`];
+      const at = dateFor(daysAgo, 21);
+      insertAttempt.run(kind, id, mode, mode === 'review' ? '' : '(example answer)', score, rating, at.toISOString());
+      const reps = (ratedSoFar.get(`${kind}:${id}`) ?? 0) + 1;
+      ratedSoFar.set(`${kind}:${id}`, reps);
+      const interval = reps === 1 ? 1 : 3;
+      const due = new Date(at.getTime() + interval * 86_400_000);
+      db.prepare(
+        `INSERT INTO reviews (kind, item_id, due_at, interval_days, ease, reps, lapses, last_rating, last_reviewed_at)
+         VALUES (?, ?, ?, ?, 2.5, ?, 0, ?, ?)
+         ON CONFLICT (kind, item_id) DO UPDATE SET due_at = excluded.due_at, interval_days = excluded.interval_days,
+           reps = excluded.reps, last_rating = excluded.last_rating, last_reviewed_at = excluded.last_reviewed_at`,
+      ).run(kind, id, due.toISOString(), interval, rating >= 2 ? reps : 0, rating, at.toISOString());
     }
     db.prepare('INSERT INTO meta (key, value) VALUES (?, ?)').run(SEED_FLAG, new Date().toISOString());
   });

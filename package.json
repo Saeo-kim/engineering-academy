@@ -1,7 +1,7 @@
 {
   "name": "engineering-academy",
-  "version": "0.1.0",
-  "description": "A local-first engineering knowledge base: capture commands, errors and explanations, then turn them into understanding.",
+  "version": "0.2.0",
+  "description": "A personal engineering training system: capture what you learn, then explain it, rebuild it, and verify it.",
   "private": true,
   "type": "module",
   "engines": {
@@ -9,9 +9,11 @@
   },
   "scripts": {
     "start": "node --disable-warning=ExperimentalWarning server/index.js",
+    "start:public": "node --disable-warning=ExperimentalWarning --env-file=.env server/index.js",
     "dev": "node --disable-warning=ExperimentalWarning --watch server/index.js",
     "build": "node scripts/check.js",
-    "test": "node --disable-warning=ExperimentalWarning --test tests/api.test.js",
-    "test:e2e": "node --disable-warning=ExperimentalWarning tests/e2e/run.js"
+    "test": "node --disable-warning=ExperimentalWarning --test tests/api.test.js tests/learning.test.js",
+    "test:e2e": "node --disable-warning=ExperimentalWarning tests/e2e/run.js",
+    "screenshots": "node --disable-warning=ExperimentalWarning scripts/screenshots.js"
   }
 }

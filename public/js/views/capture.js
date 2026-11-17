@@ -115,5 +115,5 @@ export async function captureView({ setDirty }) {
     h('div', { class: 'form-actions' }, h('button', { class: 'button primary', type: 'submit', id: 'capture-save' }, 'Save capture'), h('span', { class: 'hint' }, 'Ctrl + Enter')),
   );
 
-  return h('div', { class: 'page narrow' }, pageHeader('Quick Capture', 'Save it now and explain it later. Commands go to the Command Library, errors to the Error Archive, and everything else to the Knowledge Library.'), result, form);
+  return h('div', { class: 'page narrow' }, pageHeader('Quick Capture', 'Save it now and explain it later. Commands go to the Command Library, errors to the Error Archive, workflow steps to Workflows, and everything else to the Knowledge Library.'), result, form);
 }

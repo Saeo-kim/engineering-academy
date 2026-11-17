@@ -100,7 +100,41 @@ export const KIND_UI = {
   },
 };
 
-export const CAPTURE_DESTINATIONS = { commands: 'Command Library', errors: 'Error Archive', knowledge: 'Knowledge Library' };
+KIND_UI.workflows = {
+  label: 'Workflow',
+  singular: 'workflow',
+  plural: 'workflows',
+  heading: 'Workflows',
+  intro: 'Repeatable implementation procedures: the goal, the steps in order, and how to prove they worked.',
+  emptyHint: 'Write down the next procedure you had to piece together from several sources.',
+  relatedLabel: 'Related records',
+  progressFields: ['goal', 'prerequisites', 'verification', 'pitfalls'],
+  numbered: true,
+  sections: [
+    { field: 'goal', label: 'Goal', prompt: 'What does this workflow achieve, and when do you use it?' },
+    { field: 'prerequisites', label: 'Prerequisites', prompt: 'What must be true before you start?' },
+    { field: 'steps', label: 'Steps', mode: 'code', copy: true },
+    { field: 'verification', label: 'Verification', prompt: 'How do you prove it worked?' },
+    { field: 'pitfalls', label: 'Pitfalls', prompt: 'Where does it usually go wrong?' },
+  ],
+  form: [
+    { name: 'title', label: 'Title', required: true },
+    { name: 'goal', label: 'Goal', type: 'textarea', rows: 2 },
+    { name: 'category', label: 'Category', type: 'category', third: true },
+    { name: 'tags', label: 'Tags', type: 'tags', third: true },
+    { name: 'entry_date', label: 'Date', type: 'date', third: true },
+    { name: 'prerequisites', label: 'Prerequisites', type: 'textarea', rows: 3 },
+    { name: 'steps', label: 'Steps', type: 'code', required: true, rows: 8 },
+    { name: 'verification', label: 'Verification', type: 'textarea', rows: 3 },
+    { name: 'pitfalls', label: 'Pitfalls', type: 'textarea', rows: 3 },
+    { name: 'links', label: 'Related records', type: 'links' },
+  ],
+};
+
+export const CAPTURE_DESTINATIONS = { commands: 'Command Library', errors: 'Error Archive', knowledge: 'Knowledge Library', workflows: 'Workflows' };
+
+export const MODE_LABELS = { explain: 'Explain-back', rebuild: 'Rebuild', quiz: 'Assessment', review: 'Review' };
+export const RATING_LABELS = { 1: 'Again', 2: 'Hard', 3: 'Good', 4: 'Easy' };
 
 export function progress(kind, record) {
   const fields = KIND_UI[kind].progressFields;

@@ -1,4 +1,4 @@
-import { h } from './dom.js';
+import { codeBlock, h } from './dom.js';
 import { isResolved, KIND_UI, progress } from './schema.js';
 
 export const sampleBadge = (record) => record.is_sample && h('span', { class: 'badge sample' }, 'EXAMPLE');
@@ -49,3 +49,34 @@ export function selectField(label, value, options, onchange) {
 }
 
 export const recordHref = (kind, id) => `#/${kind}/${id}`;
+export const practiceHref = (kind, id, mode) => `#/practice/${kind}/${id}/${mode}`;
+
+export const STAGE_LABELS = ['Captured', 'Understood', 'Explained', 'Reproduced', 'Verified'];
+
+// The five-step learning loop for one record.
+export function stageStepper(steps) {
+  return h(
+    'ol',
+    { class: 'stepper', id: 'stage-stepper', 'aria-label': 'Learning stage' },
+    steps.map((s, i) =>
+      h(
+        'li',
+        { class: `step-item${s.done ? ' done' : ''}${s.na ? ' na' : ''}`, title: s.done ? (s.na ? s.hint : `${s.label}: done`) : s.hint, dataset: { stage: s.key } },
+        h('span', { class: 'step-dot', 'aria-hidden': 'true' }, s.done ? (s.na ? '–' : '✓') : String(i + 1)),
+        h('span', { class: 'step-label' }, s.label),
+        h('span', { class: 'visually-hidden' }, s.done ? (s.na ? ' (not applicable)' : ' (done)') : ` (to do: ${s.hint})`),
+      ),
+    ),
+  );
+}
+
+export function stageBadge(stage) {
+  const label = stage >= 5 ? 'Verified' : STAGE_LABELS[Math.max(0, stage - 1)];
+  return h('span', { class: `badge stage s${stage}`, title: `Learning stage ${stage} of 5` }, `${stage}/5 ${label}`);
+}
+
+// The text an exercise shows next to its prompt: a command, an error, a goal.
+export function contextBlock(context) {
+  if (!context?.text) return null;
+  return context.code ? codeBlock(context.text, { tone: context.tone }) : h('blockquote', { class: 'context' }, context.text);
+}

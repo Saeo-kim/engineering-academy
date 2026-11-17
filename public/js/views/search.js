@@ -21,7 +21,7 @@ export async function searchView({ query }) {
       'div',
       { class: 'page narrow' },
       h('header', { class: 'page-header' }, h('div', null, h('h1', null, 'Search'))),
-      h('section', { class: 'panel' }, emptyState('Search everything', 'Type in the bar above to search knowledge, commands, and errors. Paste a fragment of an error message to find out whether you have solved it before.')),
+      h('section', { class: 'panel' }, emptyState('Search everything', 'Type in the bar above to search knowledge, commands, errors, and workflows. Paste a fragment of an error message to find out whether you have solved it before.')),
     );
   }
 

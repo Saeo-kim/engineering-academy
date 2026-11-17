@@ -20,6 +20,7 @@ export const CAPTURE_TYPES = [
   { id: 'command', label: 'Terminal command', kind: 'commands' },
   { id: 'output', label: 'Terminal output', kind: 'knowledge' },
   { id: 'error', label: 'Error message', kind: 'errors' },
+  { id: 'workflow', label: 'Workflow steps', kind: 'workflows' },
   { id: 'snippet', label: 'Code snippet', kind: 'knowledge' },
   { id: 'ai_explanation', label: 'AI explanation', kind: 'knowledge' },
   { id: 'note', label: 'Technical note', kind: 'knowledge' },
@@ -73,6 +74,18 @@ export const RESOURCES = {
       files_affected: 'Files affected',
       verification: 'Verification',
       lessons: 'Lessons learned',
+    },
+  },
+  workflows: {
+    table: 'workflows',
+    required: ['title', 'steps'],
+    text: ['goal', 'prerequisites', 'steps', 'verification', 'pitfalls'],
+    labels: {
+      goal: 'Goal',
+      prerequisites: 'Prerequisites',
+      steps: 'Steps',
+      verification: 'Verification',
+      pitfalls: 'Pitfalls',
     },
   },
 };

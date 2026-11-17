@@ -1,6 +1,14 @@
 # Future architecture
 
-None of this is implemented. The MVP is deliberately manual; this document records how it could grow and what must be true before it does.
+Capture stays deliberately manual. This document records how the app could grow and what must be true before it does.
+
+## Shipped in v0.2
+
+- **Learning loop.** Explain-back exercises, rebuild challenges, generated assessments, a spaced-repetition Review Center, and a five-stage progress model per record (`server/learning.js`).
+- **Pluggable evaluator.** Answers are scored by a local, deterministic provider. AI providers plug into the same interface (`server/evaluator.js`).
+- **Knowledge map.** A graph of all records and links, grouped by category, with tag-based link suggestions.
+- **Workflows.** A fourth collection for implementation procedures.
+- **Optional password protection.** Allows a tunnel or proxy deployment. The server refuses to start exposed without a password.
 
 ## Privacy comes first
 
@@ -43,15 +51,15 @@ A "Draft explanation" action fills empty What/Why/How fields, shown side by side
 
 ### Knowledge relationship mapping
 
-The `links` table already stores an undirected graph across all record types. Next steps are link types (*causes*, *fixes*, *requires*), suggested links based on shared tags and text, and a graph view.
+Shipped: the graph view and tag-based link suggestions. Next steps are link types (*causes*, *fixes*, *requires*) and suggestions based on text similarity, not only shared tags.
 
 ### Learning progress tracking
 
-`activity`, `study_count`, and `last_studied_at` already record the raw data. Add spaced repetition with a `next_review_at` column and a review queue on the Dashboard, plus progress per category.
+Shipped: spaced repetition (`reviews` table), the Review Center, and progress per category and per stage. Next: a daily new-card limit setting, and review statistics such as retention rate per category.
 
 ### Practical exercises and quizzes
 
-Promote the free-text exercise field to an `exercises` table with attempts and outcomes. Quiz prompts can come from a record's own fields, for example showing an error message and asking for the root cause.
+Shipped: `attempts` and `quizzes` tables, with assessments generated from records' own fields (definition → concept, purpose → command, error → root cause, goal → workflow). Next: free-text assessment questions scored by the evaluator, and per-question difficulty from historical accuracy.
 
 ## Likely technical changes
 

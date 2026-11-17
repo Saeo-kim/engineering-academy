@@ -63,6 +63,7 @@ describe('CRUD', () => {
     ['knowledge', { content: 'body', what_is_it: 'a thing' }],
     ['commands', { command: 'ls -la', purpose: 'list' }],
     ['errors', { error_message: 'boom', root_cause: 'bad input' }],
+    ['workflows', { steps: '1. build\n2. ship', goal: 'release' }],
   ]) {
     it(`creates, reads, updates and deletes ${kind}`, async () => {
       const created = await api('POST', kind, { title: `T ${kind}`, category: 'Java', tags: 'One, two,one', ...extra });
@@ -86,6 +87,7 @@ describe('CRUD', () => {
     assert.equal((await api('POST', 'knowledge', { title: '   ' })).status, 400);
     assert.equal((await api('POST', 'commands', { title: 'no command' })).status, 400);
     assert.equal((await api('POST', 'errors', { title: 'no message' })).status, 400);
+    assert.equal((await api('POST', 'workflows', { title: 'no steps', goal: 'x' })).status, 400);
     assert.equal((await api('POST', 'knowledge', { title: 'x', category: 'Nope' })).status, 400);
     assert.equal((await api('POST', 'knowledge', { title: 'x', entry_date: '2026-02-31' })).status, 400);
     assert.equal((await api('POST', 'knowledge', { title: 'x', content: 42 })).status, 400);
@@ -117,6 +119,7 @@ describe('capture routing', () => {
     ['snippet', 'knowledge', 'content'],
     ['ai_explanation', 'knowledge', 'content'],
     ['note', 'knowledge', 'content'],
+    ['workflow', 'workflows', 'steps'],
   ];
   for (const [type, kind, field] of cases) {
     it(`sends ${type} to ${kind}`, async () => {
@@ -268,11 +271,11 @@ describe('persistence and sample data', () => {
     let repository = createRepository(database);
     assert.equal(seedIfFirstRun(repository), true);
     assert.equal(seedIfFirstRun(repository), false);
-    assert.equal(repository.dashboard().totals.samples, 11);
+    assert.equal(repository.dashboard().totals.samples, 13);
     assert.ok(repository.list('knowledge').every((r) => r.is_sample));
 
     const mine = repository.create('knowledge', { title: 'Mine' });
-    assert.equal(repository.removeSamples(), 11);
+    assert.equal(repository.removeSamples(), 13);
     assert.equal(repository.dashboard().totals.samples, 0);
     assert.equal(repository.dashboard().activity.reduce((sum, a) => sum + a.total, 0), 1);
     database.close();
