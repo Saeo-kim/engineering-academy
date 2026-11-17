@@ -29,6 +29,8 @@ The same file is in GitHub: `Saeo-kim/engineering-academy` → `develop` → `wo
 
 **Not found anywhere** (local disk, and GitHub `Saeo-kim` under 16 name variants): *Questions & Answers*, *Development Progress Manager*, *SAEO Personal App Hub*. If they exist, they are under another name or account. Nothing was created for them.
 
+**In progress by another Claude session (21:08–):** `SAEO-WORKSPACEsaeo-hub` — a new project (possibly the *SAEO Personal App Hub*). At 21:10 it had **no commits and no GitHub remote**, so it is **not** on GitHub and will not exist on the home laptop unless that session pushes it. That session was also working in `owners-office` and `LiguaSpace` after 21:10; `git pull` on develop at home picks up anything it pushed.
+
 ---
 
 ## B. GitHub status (verified with `git ls-remote` against GitHub at 21:08)
