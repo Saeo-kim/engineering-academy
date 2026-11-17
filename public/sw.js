@@ -1,17 +1,25 @@
-// Service worker: makes Engineering Academy installable and keeps the app shell
-// and course content available when the phone has no connection.
+// Service worker: makes Engineering Academy installable, opens it instantly,
+// and keeps it usable without a connection.
 //
-// Strategy is network-first everywhere, so a running server always serves the
-// newest version and the cache is only a fallback. Personal data (records,
-// reviews, progress) and lecture videos are never cached; course pages are,
-// so lessons you have opened can still be read offline.
+// App shell (HTML, JS, CSS, icons): served from the phone's cache first, so the
+// app opens without waiting for the network. VERSION is a hash of all these
+// files (scripts/sw-version.js); a new deployment changes it, the browser
+// installs the new set in the background, and the next launch uses it.
+//
+// Personal data (records, reviews, progress) and lecture videos are never
+// cached. Course pages are cached network-first, so lessons you have opened can
+// still be read offline.
+//
+// On localhost everything is network-first, so code edits show up immediately.
 
-const CACHE = 'ea-shell-v1';
+const VERSION = '26cfc4819302';
+const CACHE = `ea-shell-${VERSION}`;
+const DATA_CACHE = 'ea-data';
+const DEV = ['localhost', '127.0.0.1', '[::1]'].includes(self.location.hostname);
 
 // Every file the app needs to start. scripts/check.js verifies they exist.
 const SHELL = [
   '/',
-  '/index.html',
   '/manifest.webmanifest',
   '/favicon.svg',
   '/icons/icon-32.png',
@@ -45,11 +53,11 @@ const SHELL = [
 ];
 
 self.addEventListener('install', (event) => {
+  // All or nothing: a half-downloaded version is never used.
   event.waitUntil(
     caches
       .open(CACHE)
-      // One missing file must not stop installation, so add them one by one.
-      .then((cache) => Promise.all(SHELL.map((url) => cache.add(new Request(url, { cache: 'reload' })).catch(() => {}))))
+      .then((cache) => cache.addAll(SHELL.map((url) => new Request(url, { cache: 'reload' }))))
       .then(() => self.skipWaiting()),
   );
 });
@@ -58,13 +66,20 @@ self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches
       .keys()
-      .then((keys) => Promise.all(keys.filter((key) => key !== CACHE).map((key) => caches.delete(key))))
+      .then((keys) => Promise.all(keys.filter((key) => key !== CACHE && key !== DATA_CACHE).map((key) => caches.delete(key))))
       .then(() => self.clients.claim()),
   );
 });
 
-async function networkFirst(request, { fallback } = {}) {
-  const cache = await caches.open(CACHE);
+const SHELL_SET = new Set(SHELL);
+
+async function cacheFirst(request, key) {
+  const cached = await caches.match(key ?? request, { cacheName: CACHE });
+  return cached ?? fetch(request);
+}
+
+async function networkFirst(request, { fallback, cacheName = CACHE } = {}) {
+  const cache = await caches.open(cacheName);
   try {
     const response = await fetch(request);
     if (response.ok && response.type === 'basic') cache.put(request, response.clone());
@@ -83,12 +98,17 @@ self.addEventListener('fetch', (event) => {
   if (url.origin !== self.location.origin) return; // embedded players, external videos
   if (url.pathname.startsWith('/media/')) return; // large, ranged, personal: always from the server
   if (url.pathname.startsWith('/api/')) {
-    if (url.pathname.startsWith('/api/courses')) event.respondWith(networkFirst(request));
+    if (url.pathname.startsWith('/api/courses')) event.respondWith(networkFirst(request, { cacheName: DATA_CACHE }));
     return; // all other data stays live and private
   }
-  if (request.mode === 'navigate') {
-    event.respondWith(networkFirst(request, { fallback: '/' }));
+  if (DEV) {
+    event.respondWith(networkFirst(request, request.mode === 'navigate' ? { fallback: '/' } : {}));
     return;
   }
-  event.respondWith(networkFirst(request));
+  // The app is one page: every navigation opens the cached shell instantly.
+  if (request.mode === 'navigate') {
+    event.respondWith(cacheFirst(request, '/'));
+    return;
+  }
+  if (SHELL_SET.has(url.pathname)) event.respondWith(cacheFirst(request));
 });

@@ -1,37 +1,47 @@
 # Cloud deployment
 
-Engineering Academy runs as a single always-on web service with a persistent disk for its SQLite database. It needs no personal computer, tunnel or terminal once deployed.
+Engineering Academy needs a small backend: sign-in must check a secret, your records must persist off the phone, and assessments keep their answer key on the server. Everything else (HTML, JS, CSS, icons, the curriculum text) is static.
 
-## Render (configured)
+## Recommended: Cloudflare Workers + one SQLite Durable Object ($0)
 
-`render.yaml` describes the service:
+```text
+iPhone ──► Cloudflare edge (nearest city, HTTPS, HTTP/3, brotli)
+             ├─ /, /js, /css, /icons, /manifest ──► static assets (edge cache)
+             └─ /api/* ──► Worker ──► Durable Object "academy"
+                                       └─ SQLite (durable, replicated, 30-day point-in-time recovery)
+```
 
-| Setting | Value | Why |
-| --- | --- | --- |
-| Runtime | Docker (`Dockerfile`, `node:22-alpine`) | Same image everywhere; no npm dependencies |
-| Plan | Starter, always on | The free plan sleeps and cannot attach a disk |
-| Persistent disk | `academy-data`, 1 GB at `/var/data` | Holds `academy.db` and `videos/`; survives restarts and deploys, with daily snapshots |
-| Branch | `claude/kind-goldberg-1bf39i`, auto-deploy on push | `main` is not deployed until you merge |
-| Health check | `/healthz` | Restarts the service if it stops answering |
-| HTTPS | Automatic, `https://<service>.onrender.com` | Render terminates TLS |
-
-Environment and secrets (set in Render, never in Git):
-
-| Variable | Value |
+| Concern | How it is handled |
 | --- | --- |
-| `ACADEMY_PASSWORD` | Your sign-in password, 12+ characters. Change it any time under the service's **Environment** tab. |
-| `ACADEMY_SESSION_SECRET` | Random; keeps sign-ins valid across deploys |
-| `ACADEMY_TRUST_PROXY`, `ACADEMY_SECURE_COOKIES` | `true` |
-| `RENDER_EXTERNAL_HOSTNAME` | Set by Render; the app allows its own `*.onrender.com` host automatically |
+| Cost | Workers **Free plan**: no card, nothing can be billed. 100,000 API requests/day; static files are free and unlimited; 5 GB of SQLite storage. |
+| Cold starts | No sleeping server. Workers start in milliseconds; the Durable Object wakes in tens of milliseconds. (Render's free tier sleeps after 15 minutes and takes ~30–60 s to wake, which is what makes those apps feel slow.) |
+| Speed | Static files come from the nearest of 300+ Cloudflare cities. The service worker opens the app from the phone's cache, so a launch waits only for one parallel round of API calls. |
+| Persistence | Durable Object storage is written durably before each response is sent, survives every deploy and restart, and can be restored to any point in the last 30 days. |
+| Security | Same code as the Node server (`server/api.js`): password sign-in, signed `HttpOnly; Secure; SameSite=Strict` cookie, Origin checks, sign-in rate limiting, strict CSP (`public/_headers`). The Worker refuses all API calls until both secrets are set. |
+| CPU limit | The Free plan allows 10 ms of CPU per request. Measured with 300+ records: lesson and course pages under 1 ms, dashboard summary ~6 ms (cached in memory until the next write), assessments ~7 ms. If a very large library ever exceeds it, Workers Paid ($5/month) raises the limit; this needs your approval. |
+| Not available in the cloud | Self-hosted video files (`/media/`), which need a disk. YouTube, Vimeo and https video links work. |
 
-The server refuses to start in the cloud without a password, rejects requests for any other host name, and serves everything over HTTPS.
+### Deploy
+
+Requires a free Cloudflare account and an API token from the **Edit Cloudflare Workers** template.
+
+```sh
+npm install                                   # Wrangler (deploy tool only)
+npx wrangler secret put ACADEMY_PASSWORD      # 12+ characters
+npx wrangler secret put ACADEMY_SESSION_SECRET
+npm run cloud:deploy                          # versions the service worker, checks, deploys
+npm run cloud:smoke -- https://engineering-academy.<you>.workers.dev <password>
+```
+
+Set `ACADEMY_LOCATION_HINT` in `wrangler.jsonc` (`apac`, `enam`, `wnam`, `weur`, ...) before the first deploy, so the database is created near where you use the app. It cannot move later.
 
 ### Data
 
 - The cloud database starts fresh, with the removable EXAMPLE records. Your local `data/academy.db` is never uploaded or changed.
-- To move local data to the cloud later, upload `academy.db` to `/var/data/academy.db` with the service stopped (Render Shell or `scp` over Render SSH), then restart.
-- Render keeps daily disk snapshots, restorable from the **Disks** section of the service.
+- Each deploy keeps the data: the database belongs to the Durable Object, not to the code.
 
-## Other providers
+## Alternative: Render web service (~$7.25/month)
 
-The same image runs on Railway (attach a volume at `/var/data`; `RAILWAY_PUBLIC_DOMAIN` is allowed automatically) and Fly.io (volume at `/var/data`; `<app>.fly.dev` is allowed automatically). Set `ACADEMY_PASSWORD`, `ACADEMY_SESSION_SECRET`, `ACADEMY_TRUST_PROXY=true` and `ACADEMY_SECURE_COOKIES=true`.
+`Dockerfile` and `render.yaml` describe an always-on Starter instance with a 1 GB persistent disk. It is simpler but costs money, runs in one region, and serves every file from that region. Render's free plan is not suitable: it sleeps (slow first load) and has no persistent disk (data is lost on redeploy).
+
+The same Docker image also runs on Railway or Fly.io with a volume at `/var/data`.

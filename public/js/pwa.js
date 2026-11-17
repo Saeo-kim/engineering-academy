@@ -3,6 +3,12 @@
 // where installing is done from Safari's Share menu instead.
 
 let deferredPrompt = null;
+let updateReady = false;
+
+export const isUpdateReady = () => updateReady;
+
+// Cached course pages include your progress, so they go when you sign out.
+export const clearPrivateCaches = () => (window.caches ? caches.delete('ea-data').catch(() => false) : Promise.resolve(false));
 const listeners = new Set();
 
 export const isStandalone = () => window.matchMedia?.('(display-mode: standalone)').matches || window.navigator.standalone === true;
@@ -46,6 +52,12 @@ export function initPwa() {
   });
   // Service workers need a secure context: https, or localhost while developing.
   if ('serviceWorker' in navigator && window.isSecureContext) {
+    const hadController = Boolean(navigator.serviceWorker.controller);
+    // A new version took over in the background. Switch to it at the next
+    // in-app navigation (never mid-typing), see main.js.
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (hadController) updateReady = true;
+    });
     window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js', { scope: '/' }).catch(() => {}));
   }
   document.documentElement.classList.toggle('standalone', isStandalone());

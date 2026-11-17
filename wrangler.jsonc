@@ -1,0 +1,26 @@
+// Cloudflare deployment (Workers Free plan: no charges, no card required).
+// Deploy: npx wrangler deploy. Secrets: npx wrangler secret put ACADEMY_PASSWORD
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "engineering-academy",
+  "main": "worker/index.js",
+  "compatibility_date": "2025-09-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": true,
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS",
+    "not_found_handling": "none"
+  },
+  "durable_objects": {
+    "bindings": [{ "name": "ACADEMY", "class_name": "Academy" }]
+  },
+  // SQLite-backed Durable Objects are available on the Workers Free plan.
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Academy"] }],
+  "vars": {
+    // Where the database is created the first time: "apac", "enam", "weur", ...
+    // Pick the region you use the app from; empty means "near the first visitor".
+    "ACADEMY_LOCATION_HINT": ""
+  },
+  "observability": { "enabled": true }
+}

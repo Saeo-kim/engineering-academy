@@ -1,6 +1,6 @@
 import { api } from './api.js';
 import { confirmDialog, debounce, h, icon, replaceChildren } from './dom.js';
-import { initPwa } from './pwa.js';
+import { clearPrivateCaches, initPwa, isUpdateReady } from './pwa.js';
 import { captureView } from './views/capture.js';
 import { courseView, coursesView, lessonView } from './views/courses.js';
 import { dashboardView } from './views/dashboard.js';
@@ -190,6 +190,11 @@ window.addEventListener('hashchange', async () => {
     location.hash = target;
     return;
   }
+  // A new version of the app is installed: load it now, between pages.
+  if (isUpdateReady()) {
+    location.reload();
+    return;
+  }
   render();
 });
 
@@ -258,6 +263,7 @@ function enableSignOut() {
         id: 'sign-out',
         onclick: async () => {
           await api.logout().catch(() => {});
+          await clearPrivateCaches();
           showLogin();
         },
       },
@@ -269,15 +275,15 @@ function enableSignOut() {
 
 window.addEventListener('auth-required', showLogin);
 
+// The session check and the first page load run in parallel: one round trip
+// instead of two before anything appears. If the session has expired, the
+// page's own API call answers 401 and the sign-in screen takes over.
 async function boot() {
-  try {
-    const session = await api.session();
-    if (session.authRequired) enableSignOut();
-    if (session.authRequired && !session.authenticated) return showLogin();
-  } catch {
-    /* render() shows a recoverable error if the server is unreachable */
-  }
+  const session = api.session().catch(() => null);
   render();
+  const s = await session;
+  if (s?.authRequired) enableSignOut();
+  if (s?.authRequired && !s.authenticated) showLogin();
 }
 
 initPwa();

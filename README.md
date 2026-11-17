@@ -92,7 +92,7 @@ The app ships no video files and links to no specific videos: links to third-par
 
 ## Use it on your iPhone
 
-The recommended setup is a permanent cloud deployment: the app runs on Render with an always-on service, a persistent disk and HTTPS, so your computer does not need to be on. See [docs/DEPLOY.md](docs/DEPLOY.md). The options below are for running it from your own computer instead.
+The recommended setup is a permanent cloud deployment on Cloudflare's free plan: static files from the nearest edge, the API and SQLite database in a Durable Object, HTTPS, no sleeping server and no cost. Your computer does not need to be on. See [docs/DEPLOY.md](docs/DEPLOY.md). The options below are for running it from your own computer instead.
 
 The app runs on your computer, so your phone needs a way to reach it, and that computer must be on and running `npm run start:public`. For "any time, anywhere" access, use an always-on computer or a small server. Installing as an app and offline support need **https**.
 
@@ -234,6 +234,9 @@ Open <http://localhost:4310>. The first run adds 13 records labelled **EXAMPLE**
 | `npm test` | API, learning, security and migration tests against temporary databases |
 | `npm run test:e2e` | Browser tests in headless Chrome or Edge (set `CHROME_PATH` if not found) |
 | `npm run screenshots` | Regenerate `docs/screenshots/` |
+| `npm run cloud:dev` | Run the Cloudflare version locally (`.dev.vars` holds test secrets) |
+| `npm run cloud:deploy` | Deploy to Cloudflare (see docs/DEPLOY.md) |
+| `npm run cloud:smoke -- <url> <password>` | Check a deployment: assets, sign-in, API, courses, PWA files |
 | `npm run icons` | Re-render the app icons from `public/favicon.svg` (only after an approved icon change) |
 
 Keyboard: `Ctrl K` search, `Ctrl Enter` save or check an answer, `Space` and `1`–`4` in the Review Center.
@@ -282,7 +285,7 @@ All record tables share `title`, `category`, `tags` (JSON array), `entry_date`, 
 
 ```powershell
 npm run build      # static check
-npm test           # 75 API, learning, course, video, PWA, branding, security and migration tests
+npm test           # 85 API, learning, course, video, PWA, branding, deployment, security and migration tests
 npm run test:e2e   # 40 browser checks in headless Chrome or Edge
 ```
 

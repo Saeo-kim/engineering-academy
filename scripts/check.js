@@ -61,6 +61,14 @@ for (const file of sources.filter((p) => p.startsWith(join(root, 'public')) && !
   if (!shell.includes(url)) failures.push(`sw.js does not pre-cache ${url}`);
 }
 
+// The service worker version must match the files it caches, or phones
+// would keep running an old copy of the app.
+{
+  const { computeVersion, currentVersion } = await import('./sw-version.js');
+  const expected = computeVersion();
+  if (currentVersion() !== expected) failures.push(`public/sw.js VERSION is out of date (expected ${expected}). Run: node scripts/sw-version.js`);
+}
+
 // Relative imports must resolve, since browsers fail on them only at runtime.
 for (const file of sources) {
   const text = readFileSync(file, 'utf8');
