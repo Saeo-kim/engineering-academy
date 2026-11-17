@@ -1,0 +1,201 @@
+/*
+ * SAEO Engineering Academy — campus theme.
+ * Design only: this file re-skins existing classes and changes no layout
+ * logic, content or behaviour. Remove its <link> to return to the old look.
+ *
+ * Identity: an academy campus. Navy crest and "school directory" sidebar,
+ * ivory lecture-note paper, chalkboard code, crimson and gold accents,
+ * serif headings like a university press.
+ */
+
+:root {
+  --bg: #f4efe4;            /* ivory paper */
+  --sidebar: #13233f;       /* academy navy */
+  --panel: #fffdf8;         /* note card */
+  --panel-raised: #f6f0e3;
+  --line: #e2d8c4;
+  --line-strong: #c9b995;
+  --text: #1f2430;
+  --text-2: #4a4f5c;
+  --muted: #7b7566;
+  --accent: #8e1b2f;        /* crimson */
+  --accent-strong: #a8243b;
+  --accent-ink: #fff8ec;
+  --gold: #b88a1e;
+  --navy: #13233f;
+  --knowledge: #1f5f8b;
+  --commands: #9a6512;
+  --errors: #b3372a;
+  --ok: #2f7a4b;
+  --workflows: #6a4c9c;
+  --stage: #2f7a4b;
+  --code-bg: #1e3329;       /* chalkboard */
+  --chalk: #eef1e6;
+  --heat-0: #ebe3d1;
+  --heat-1: #e6c9a3;
+  --heat-2: #cf9a63;
+  --heat-3: #a8243b;
+  --heat-4: #6e1424;
+  --serif: 'Noto Serif KR', 'Nanum Myeongjo', 'Batang', 'BatangChe', Georgia, 'Times New Roman', serif;
+  --radius: 6px;
+}
+
+html { background: var(--bg); color-scheme: light; }
+body {
+  background-color: var(--bg);
+  background-image:
+    radial-gradient(circle at 100% 0%, rgb(184 138 30 / 7%), transparent 38%),
+    linear-gradient(rgb(0 0 0 / 1.5%) 1px, transparent 1px);
+  background-size: auto, 100% 28px;
+  color: var(--text);
+}
+::selection { background: rgb(184 138 30 / 30%); }
+
+/* ── Sidebar: the campus directory ─────────────────────── */
+.sidebar {
+  background: linear-gradient(180deg, #13233f 0%, #0f1c33 100%);
+  border-right: 3px solid var(--gold);
+  color: #dfe4ee;
+}
+.brand { padding-bottom: 20px; margin-bottom: 4px; border-bottom: 1px solid rgb(255 255 255 / 12%); color: #fff; }
+.brand-mark {
+  width: 42px; height: 48px;
+  border: 0; border-radius: 0;
+  background: linear-gradient(160deg, #a8243b, #6e1424);
+  clip-path: polygon(0 0, 100% 0, 100% 62%, 50% 100%, 0 62%);
+  color: #f6d98a;
+  font: 700 14px var(--serif);
+  letter-spacing: .04em;
+  box-shadow: inset 0 0 0 2px #f6d98a;
+}
+.brand-name { font: 700 15px/1.2 var(--serif); letter-spacing: .01em; color: #fff; }
+.brand-name::after { content: 'EST. 2026 · SAEO'; display: block; margin-top: 3px; color: #c9a65a; font: 600 9.5px var(--mono); letter-spacing: .14em; }
+.nav-group { color: #c9a65a; font: 700 10.5px var(--serif); letter-spacing: .16em; border-top: 1px solid rgb(255 255 255 / 8%); padding-top: 12px; margin-top: 14px; }
+.nav-link { color: #c8cfdc; border-radius: 4px; }
+.nav-link:hover { background: rgb(255 255 255 / 7%); color: #fff; }
+.nav-link.active { background: rgb(246 217 138 / 14%); color: #fff; box-shadow: inset 3px 0 0 #f6d98a; }
+.sidebar-foot { color: #8f9ab0; }
+.sidebar-foot .link-button { color: #f6d98a; }
+
+/* ── Top bar: campus header ────────────────────────────── */
+.topbar {
+  background: rgb(255 253 248 / 94%);
+  border-bottom: 1px solid var(--line);
+  box-shadow: inset 0 -3px 0 0 var(--accent);
+}
+.global-search input { background: #fff; border-color: var(--line-strong); }
+.global-search kbd { background: var(--panel-raised); color: var(--muted); }
+.trail { background: #efe7d6; border-bottom-color: var(--line); }
+.trail-item { background: #fffdf8; }
+
+/* ── Typography: lecture notes ─────────────────────────── */
+.page-header h1, .detail-head h1, .xd-body h2 {
+  font-family: var(--serif);
+  font-weight: 700;
+  letter-spacing: -.005em;
+  color: var(--navy);
+}
+.page-header h1 { font-size: 30px; padding-bottom: 8px; border-bottom: 2px solid var(--navy); box-shadow: 0 3px 0 -1px var(--gold); display: inline-block; }
+.page-header .intro { font-family: var(--serif); color: var(--text-2); font-size: 15.5px; }
+.panel-head h2, .detail-section h2, .gloss-group h3, .xd-body h3 { font-family: var(--serif); color: var(--navy); }
+.detail-section h2 .step { background: var(--navy); color: #f6d98a; border-radius: 50%; }
+.prose p { font-size: 15.5px; line-height: 1.75; }
+.prose strong { color: var(--navy); }
+
+/* ── Cards: lecture handouts pinned to a board ─────────── */
+.panel, .stat, .card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  box-shadow: 0 1px 0 rgb(80 60 20 / 6%), 0 6px 18px -12px rgb(60 40 10 / 35%);
+}
+.panel { border-top: 3px solid var(--navy); }
+.stat { border-top: 3px solid var(--gold); }
+.stat:hover, .card:hover { background: #fffaf0; border-color: var(--line-strong); }
+.stat-value { color: var(--navy); font-family: var(--serif); }
+.track { border-top-color: var(--accent); }
+.notice { background: #fff6dc; border-color: var(--gold); color: var(--text-2); }
+.notice strong { color: var(--navy); }
+
+/* ── Buttons ──────────────────────────────────────────── */
+.button { background: #fffdf8; border-color: var(--line-strong); color: var(--text); }
+.button:hover { background: #f3ead7; }
+.button.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); box-shadow: 0 2px 0 #5e1020; }
+.button.primary:hover { background: var(--accent-strong); }
+.button.danger { background: #b3372a; border-color: #b3372a; color: #fff; }
+input, select, textarea { background: #fff; color: var(--text); border-color: var(--line-strong); }
+input:hover, select:hover, textarea:hover { border-color: var(--gold); }
+
+/* ── Badges: rubber stamps ────────────────────────────── */
+.badge { border-width: 1.5px; border-radius: 3px; font-weight: 700; letter-spacing: .02em; background: rgb(255 255 255 / 60%); }
+.tag { background: #efe7d6; color: var(--text-2); }
+a.tag:hover { background: #e6dac2; }
+mark { background: #f6d98a; color: var(--text); }
+
+/* ── Code: the chalkboard ─────────────────────────────── */
+.code-block, .xd-example, .explain-input textarea {
+  background: var(--code-bg);
+  border: 6px solid #6b4a2b;               /* wooden frame */
+  border-radius: 4px;
+  box-shadow: inset 0 0 40px rgb(0 0 0 / 35%);
+}
+.code-block pre, .code-block code, .xd-example code, .explain-input textarea { color: var(--chalk); }
+.explain-input textarea { border-width: 4px; }
+.xline pre code { color: var(--text); }
+.prose code, .not-written code, .xd-body code { background: #efe7d6; color: #6e1424; }
+.xs-comment { color: #9fb39a; }
+.xs-string { color: #f3d58a; }
+.code-block .xterm { border-bottom-color: rgb(246 217 138 / 55%); }
+.code-block .xterm.gen { border-bottom-color: rgb(238 241 230 / 25%); }
+.code-block .xterm.sql { border-bottom-color: #f0a35e; }
+.code-block .xterm:hover { background: rgb(246 217 138 / 20%); color: #fff; }
+.xline .xterm { border-bottom-color: var(--accent); }
+.xline .xterm.gen { border-bottom-color: var(--line-strong); }
+.xline .xterm.sql { border-bottom-color: #d9822b; }
+.copy { background: rgb(255 255 255 / 12%); border-color: rgb(255 255 255 / 25%); color: var(--chalk); }
+.prose .copy, .panel-head .copy { background: #fffdf8; color: var(--text-2); border-color: var(--line-strong); }
+
+/* ── Explanation drawer: the tutor's desk ─────────────── */
+.xdrawer { background: #fffdf8; border-left: 4px solid var(--navy); box-shadow: -18px 0 40px rgb(30 20 0 / 25%); }
+.xd-head { background: var(--navy); }
+.xd-head .button { background: transparent; color: #f6d98a; border-color: #f6d98a; }
+.xd-head .link-button { color: #fff; }
+.xd-crumbs { background: #f3ead7; }
+.xd-crumb { background: #fffdf8; }
+.xd-crumb.current { border-color: var(--accent); color: var(--accent); }
+.xd-short { font-family: var(--serif); font-size: 16.5px; }
+.xd-deep { background: #fffaf0; }
+.xd-deep strong { color: var(--accent); }
+.xtip { background: var(--navy); color: #f1ede3; border-color: #2c3f63; }
+.xtip strong { color: #f6d98a; }
+.xtip em { color: #a9b3c7; }
+.chip { background: #fffaf0; border-color: var(--line-strong); color: var(--text-2); }
+.chip:hover { border-color: var(--accent); color: var(--accent); }
+
+/* ── Coach notes: the teacher's margin comment ────────── */
+.coach {
+  display: flex; gap: 12px; align-items: flex-start;
+  margin: 0 0 18px; padding: 14px 16px;
+  background: #fffbea;
+  border: 1px solid #ead9a3; border-left: 4px solid var(--gold);
+  border-radius: 4px;
+  box-shadow: 0 6px 16px -12px rgb(80 60 0 / 45%);
+}
+.coach-mark { flex: none; display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; background: var(--accent); color: #fff; font-size: 15px; }
+.coach strong { display: block; margin-bottom: 3px; font-family: var(--serif); font-size: 15.5px; color: var(--navy); }
+.coach p { color: var(--text-2); font-size: 14.5px; line-height: 1.6; }
+.coach-next { margin-top: 6px; font-weight: 600; color: var(--accent) !important; }
+
+/* ── Misc surfaces that were dark ─────────────────────── */
+.chart-tooltip, .toast { background: var(--navy); color: #f1ede3; border-color: var(--gold); }
+.dialog { background: #fffdf8; color: var(--text); border: 1px solid var(--line-strong); border-top: 4px solid var(--navy); }
+.dialog::backdrop { background: rgb(19 35 63 / 45%); }
+.map-canvas { background: radial-gradient(circle at 50% 40%, #fffaf0, var(--panel) 70%); }
+.question.wrong { border-color: #d9a49c; }
+.stepper .step-item.done .step-dot { background: var(--ok); color: #fff; }
+
+@media (max-width: 900px) {
+  .page-header h1 { font-size: 25px; }
+}
+
+/* Chalk text must win over inline-code colours inside prose. */
+.prose .code-block code, .code-block pre code, .xd-body .xd-example code { background: none; color: var(--chalk); padding: 0; }

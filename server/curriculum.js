@@ -6,6 +6,8 @@
 // Sources: 파이널/JPA + AI 코드 검증 시험공부 자습서.html (defect-lab),
 // plus general computer basics, prompt writing and PowerShell setup.
 
+import { KNOWLEDGE_V2, LINKS_V2, WORKFLOWS_V2 } from './curriculum2.js';
+
 const L = (...lines) => lines.join('\n');
 
 const KNOWLEDGE = [
@@ -775,18 +777,18 @@ const LINKS = [
 
 // Learning tracks shown on the Curriculum page, in study order.
 export const TRACKS = [
-  { id: 'start', title: '0. 막힐 때 공부법', intro: '같은 내용을 계속 다시 읽고 있다면 여기부터.', items: ['knowledge:how-to-learn'] },
+  { id: 'start', title: '0. 막힐 때 공부법', intro: '같은 내용을 계속 다시 읽고 있다면 여기부터. 이 Academy가 설명하는 순서도 여기에.', items: ['knowledge:how-to-learn', 'knowledge:study-principles'] },
   {
     id: 'computer',
     title: '1. 컴퓨터 완전 기본',
-    intro: '사양(RAM), 폴더와 경로, 단축키. 개발 에러의 절반은 여기서 막힙니다.',
-    items: ['knowledge:pc-parts', 'knowledge:folders-paths', 'knowledge:shortcuts-windows', 'knowledge:shortcuts-ide', 'commands:execution-policy', 'errors:ps-script-blocked'],
+    intro: '사양(RAM), 폴더와 경로, 단축키, Bash. 개발 에러의 절반은 여기서 막힙니다.',
+    items: ['knowledge:pc-parts', 'knowledge:folders-paths', 'knowledge:shortcuts-windows', 'knowledge:shortcuts-ide', 'knowledge:bash-basics', 'commands:execution-policy', 'errors:ps-script-blocked'],
   },
   {
     id: 'jpa',
     title: '2. JPA 시험',
-    intro: '시험 구조 → A 연관관계 → B N+1·LAZY → C 영속성 → D JPQL.',
-    items: ['knowledge:jpa-exam-structure', 'knowledge:owner-mappedby', 'knowledge:n-plus-one-ko', 'knowledge:lazy-proxy', 'errors:lazy-init', 'knowledge:persistence-context', 'knowledge:jpql-repository', 'commands:show-sql', 'workflows:jpa-exam-routine'],
+    intro: '시험 구조 → A 연관관계(Review.store 읽는 법) → B EAGER·LAZY·N+1 → C 영속성 → D JPQL.',
+    items: ['knowledge:jpa-exam-structure', 'knowledge:review-store-notation', 'knowledge:owner-mappedby', 'knowledge:eager-lazy-truth', 'knowledge:n-plus-one-ko', 'knowledge:lazy-proxy', 'errors:lazy-init', 'knowledge:persistence-context', 'knowledge:jpql-repository', 'commands:show-sql', 'workflows:jpa-exam-routine'],
   },
   {
     id: 'verify',
@@ -794,42 +796,62 @@ export const TRACKS = [
     intro: '결함의 무늬 4가지와 사건 수사 6단계.',
     items: ['knowledge:defect-patterns', 'workflows:case-investigation', 'commands:gradle-mission-test'],
   },
-  { id: 'prompt', title: '4. 프롬프트 잘 작성하는 법', intro: 'AI에게 일 시키기, 그리고 결과 검증까지.', items: ['knowledge:prompt-writing', 'workflows:prompt-workflow'] },
-  { id: 'focusflow', title: '5. Focus_Flow로 일하기', intro: '무엇을 언제(Focus_Flow) + 이해했나(Academy).', items: ['knowledge:focusflow-guide', 'workflows:new-laptop'] },
+  { id: 'prompt', title: '4. 프롬프트 잘 작성하는 법', intro: 'AI에게 일 시키기, 그리고 결과 검증까지.', items: ['knowledge:prompt-writing', 'workflows:prompt-workflow', 'knowledge:tokens-english'] },
+  {
+    id: 'claude',
+    title: '5. Claude와 일하기 (AI에 끌려다니지 않기)',
+    intro: 'Claude가 무엇인지, 어떻게 시키고 검증하는지, 답을 어디까지 배워야 하는지.',
+    items: ['knowledge:claude-what', 'knowledge:claude-dev', 'knowledge:claude-how-much', 'knowledge:workspace-registry'],
+  },
+  { id: 'focusflow', title: '6. Focus_Flow와 작업 환경', intro: '무엇을 언제(Focus_Flow) + 이해했나(Academy) + 어디서나 이어서 일하기.', items: ['knowledge:focusflow-guide', 'knowledge:actions-bot', 'workflows:new-laptop', 'workflows:laptop-migration'] },
 ];
 
-const FLAG = 'curriculum_ko_v1';
-const KEYS_FLAG = 'curriculum_ko_v1_ids';
+const PACKS = [
+  { flag: 'curriculum_ko_v1', ids: 'curriculum_ko_v1_ids', records: () => ({ knowledge: KNOWLEDGE, commands: COMMANDS, errors: ERRORS, workflows: WORKFLOWS }), links: () => LINKS },
+  { flag: 'curriculum_ko_v2', ids: 'curriculum_ko_v2_ids', records: () => ({ knowledge: KNOWLEDGE_V2, workflows: WORKFLOWS_V2 }), links: () => LINKS_V2 },
+];
 
+function allIds(db) {
+  const ids = {};
+  for (const pack of PACKS) {
+    const row = db.prepare('SELECT value FROM meta WHERE key = ?').get(pack.ids);
+    if (row) Object.assign(ids, JSON.parse(row.value));
+  }
+  return ids;
+}
+
+// Installs every pack this database does not have yet. Returns how many were added.
 export function installCurriculum(repo) {
   const { db, clean, insertRow, logActivity, transaction, orderedPair } = repo.internals;
-  if (db.prepare('SELECT 1 FROM meta WHERE key = ?').get(FLAG)) return false;
-  transaction(() => {
-    const ids = {};
-    const insertAll = (kind, records) => {
-      for (const { key, ...fields } of records) {
-        const id = insertRow(kind, clean(kind, fields));
-        ids[`${kind}:${key}`] = id;
-        logActivity('created', kind, id, fields.title);
+  let installed = 0;
+  for (const pack of PACKS) {
+    if (db.prepare('SELECT 1 FROM meta WHERE key = ?').get(pack.flag)) continue;
+    transaction(() => {
+      const ids = {};
+      for (const [kind, records] of Object.entries(pack.records())) {
+        for (const { key, ...fields } of records) {
+          const id = insertRow(kind, clean(kind, fields));
+          ids[`${kind}:${key}`] = id;
+          logActivity('created', kind, id, fields.title);
+        }
       }
-    };
-    insertAll('knowledge', KNOWLEDGE);
-    insertAll('commands', COMMANDS);
-    insertAll('errors', ERRORS);
-    insertAll('workflows', WORKFLOWS);
-    const link = db.prepare('INSERT OR IGNORE INTO links (a_kind, a_id, b_kind, b_id) VALUES (?, ?, ?, ?)');
-    for (const [a, b] of LINKS) link.run(...orderedPair(a.split(':')[0], ids[a], b.split(':')[0], ids[b]));
-    db.prepare('INSERT INTO meta (key, value) VALUES (?, ?)').run(FLAG, new Date().toISOString());
-    db.prepare('INSERT INTO meta (key, value) VALUES (?, ?)').run(KEYS_FLAG, JSON.stringify(ids));
-  });
-  return true;
+      db.prepare('INSERT INTO meta (key, value) VALUES (?, ?)').run(pack.ids, JSON.stringify(ids));
+      const known = allIds(db);
+      const link = db.prepare('INSERT OR IGNORE INTO links (a_kind, a_id, b_kind, b_id) VALUES (?, ?, ?, ?)');
+      for (const [a, b] of pack.links()) {
+        if (known[a] && known[b]) link.run(...orderedPair(a.split(':')[0], known[a], b.split(':')[0], known[b]));
+      }
+      db.prepare('INSERT INTO meta (key, value) VALUES (?, ?)').run(pack.flag, new Date().toISOString());
+    });
+    installed += 1;
+  }
+  return installed > 0;
 }
 
 // Tracks with live record titles and stages. Records the user deleted are skipped.
 export function curriculum(repo, learning) {
   const { db } = repo.internals;
-  const row = db.prepare('SELECT value FROM meta WHERE key = ?').get(KEYS_FLAG);
-  const ids = row ? JSON.parse(row.value) : {};
+  const ids = allIds(db);
   return TRACKS.map((track) => ({
     ...track,
     items: track.items

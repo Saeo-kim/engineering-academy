@@ -1,4 +1,5 @@
 import { api } from '../api.js';
+import { reviewCoach } from '../coach.js';
 import { contextBlock, emptyState, kindBadge, pageHeader, practiceHref, recordHref, sampleBadge } from '../components.js';
 import { h, replaceChildren, richText, toast } from '../dom.js';
 import { RATING_LABELS } from '../schema.js';
@@ -59,6 +60,7 @@ export async function reviewView() {
       h(
         'section',
         { class: 'panel', id: 'review-summary' },
+        reviewCoach(tally),
         emptyState(
           'Session complete',
           `You reviewed ${total} ${total === 1 ? 'card' : 'cards'}: ${[1, 2, 3, 4].map((r) => `${tally[r]} ${RATING_LABELS[r]}`).join(', ')}.`,

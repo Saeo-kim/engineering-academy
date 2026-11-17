@@ -2,6 +2,7 @@ import { api } from '../api.js';
 import { contextBlock, emptyState, kindBadge, recordHref, sampleBadge, stageStepper } from '../components.js';
 import { codeBlock, h, replaceChildren, richText, toast } from '../dom.js';
 import { KIND_UI, RATING_LABELS } from '../schema.js';
+import { practiceCoach } from '../coach.js';
 
 const MODES = {
   explain: {
@@ -184,6 +185,7 @@ export async function practiceView({ params, setDirty, rerender }) {
           submit.hidden = true;
           replaceChildren(
             resultSlot,
+            practiceCoach(kind, id, result),
             resultPanel(result, answer.value, () => {
               replaceChildren(
                 nextActions,

@@ -1,0 +1,18 @@
+# CI bot: every push and pull request, plus a weekly check-up on Mondays.
+name: CI
+on:
+  push:
+  pull_request:
+  schedule:
+    - cron: '0 0 * * 1'   # Monday 09:00 KST
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: npm run build
+      - run: npm test

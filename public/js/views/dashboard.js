@@ -1,4 +1,5 @@
 import { api } from '../api.js';
+import { dashboardCoach } from '../coach.js';
 import { categoryLabel, emptyState, kindBadge, pageHeader, recordHref, sampleBadge } from '../components.js';import { confirmDialog, formatDate, h, timeAgo, toast } from '../dom.js';
 
 const WEEKS = 26;
@@ -218,6 +219,7 @@ export async function dashboardView({ rerender }) {
     'div',
     { class: 'page' },
     pageHeader('Dashboard', new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })),
+    !isBlank && dashboardCoach(data),
     totals.samples > 0 &&
       h(
         'div',
