@@ -12,7 +12,7 @@
 //
 // On localhost everything is network-first, so code edits show up immediately.
 
-const VERSION = '26cfc4819302';
+const VERSION = '0f94ca015094';
 const CACHE = `ea-shell-${VERSION}`;
 const DATA_CACHE = 'ea-data';
 const DEV = ['localhost', '127.0.0.1', '[::1]'].includes(self.location.hostname);

@@ -137,6 +137,10 @@ function errorPanel(err) {
   );
 }
 
+function loadingPanel() {
+  return h('div', { class: 'page narrow loading-page', role: 'status', 'aria-live': 'polite' }, h('p', { class: 'loading' }, h('span', { class: 'spinner', 'aria-hidden': 'true' }), 'Loading…'));
+}
+
 async function render() {
   const token = (renderToken += 1);
   const { path, query } = parseHash();
@@ -148,6 +152,10 @@ async function render() {
   if (path !== 'search') searchInput.value = '';
   else if (document.activeElement !== searchInput) searchInput.value = query.get('q') ?? '';
 
+  // Show a loading indicator only if the page takes longer than a flicker.
+  const loadingTimer = setTimeout(() => {
+    if (token === renderToken) view.replaceChildren(loadingPanel());
+  }, 150);
   let node;
   try {
     let matched = null;
@@ -168,6 +176,8 @@ async function render() {
     node = matched ?? errorPanel({ status: 404 });
   } catch (err) {
     node = errorPanel(err);
+  } finally {
+    clearTimeout(loadingTimer);
   }
   if (token !== renderToken) return; // the user has already navigated elsewhere
   view.replaceChildren(node);

@@ -195,3 +195,9 @@ img.brand-mark { border: 0; border-radius: 7px; }
    browser tab the inset is 0, so this changes nothing. */
 body::before { content: ''; position: fixed; top: 0; right: 0; left: 0; z-index: 40; height: env(safe-area-inset-top); background: var(--sidebar); pointer-events: none; }
 .topbar { top: env(safe-area-inset-top); }
+
+/* Loading indicator, shown only when a page takes longer than a moment. */
+.loading { display: flex; align-items: center; justify-content: center; gap: 10px; min-height: 40vh; color: var(--muted); font-size: 14px; }
+.spinner { width: 16px; height: 16px; border: 2px solid var(--line-strong); border-top-color: var(--accent); border-radius: 50%; animation: spin .8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .spinner { animation-duration: 2.4s; } }
