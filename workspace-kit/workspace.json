@@ -1,0 +1,128 @@
+{
+  "owner": {
+    "github": "Saeo-kim",
+    "remote": "git@github.com:Saeo-kim/{repo}.git"
+  },
+  "root": "C:/Users/KHBS_D_26/Desktop/SAEO-WORKSPACE",
+  "readOnlyReferences": [
+    "C:/Users/KHBS_D_26/Desktop/파이널",
+    "C:/Users/KHBS_D_26/Desktop/dev-playground"
+  ],
+  "projects": [
+    {
+      "id": "academy",
+      "name": "Engineering Academy",
+      "folder": "engineering-academy",
+      "repo": "engineering-academy",
+      "stack": "node",
+      "start": "npm start",
+      "url": "http://localhost:4310",
+      "port": 4310,
+      "data": [
+        "data/academy.db"
+      ],
+      "branch": "develop"
+    },
+    {
+      "id": "office",
+      "name": "Owner's Office",
+      "folder": "owners-office",
+      "repo": "owners-office",
+      "stack": "node",
+      "start": "npm start",
+      "url": "http://localhost:4320",
+      "port": 4320,
+      "data": [
+        "data/office.db"
+      ],
+      "branch": "develop"
+    },
+    {
+      "id": "focusflow",
+      "name": "Focus Flow",
+      "folder": "FOCUS_FLOW",
+      "repo": "FOCUS_FLOW",
+      "stack": "spring-mysql",
+      "start": "Focus_Flow/start-focusflow.bat",
+      "url": "http://localhost:8080",
+      "port": 8080,
+      "data": [
+        "Focus_Flow/application-local.properties",
+        "mysql:focus_flow"
+      ],
+      "branch": "develop"
+    },
+    {
+      "id": "expansion",
+      "name": "The Expansion",
+      "folder": "the-expansion",
+      "repo": "the-expansion",
+      "stack": "astro",
+      "start": "npm run dev -- --port 4321",
+      "url": "http://localhost:4321",
+      "port": 4321,
+      "data": [],
+      "branch": "develop"
+    },
+    {
+      "id": "saeo-labs",
+      "name": "SAEO LABS",
+      "folder": "saeo-labs",
+      "repo": "saeo-labs",
+      "stack": "astro",
+      "start": "npm run dev -- --port 4322",
+      "url": "http://localhost:4322",
+      "port": 4322,
+      "data": [],
+      "branch": "develop"
+    },
+    {
+      "id": "lingua",
+      "name": "Lingua Space",
+      "folder": "LiguaSpace",
+      "repo": "LiguaSpace",
+      "stack": "spring-postgres",
+      "start": "gradlew.bat bootRun",
+      "url": "http://localhost:8081",
+      "port": 8081,
+      "data": [
+        "data/"
+      ],
+      "branch": "develop"
+    },
+    {
+      "id": "radar",
+      "name": "Global Tech Radar",
+      "folder": "global-tech-radar",
+      "repo": "global-tech-radar",
+      "stack": "spring-mysql-or-h2",
+      "start": "gradlew.bat bootRun --args=--spring.profiles.active=demo",
+      "url": "http://localhost:8090",
+      "port": 8090,
+      "data": [
+        "mysql:global_tech_radar"
+      ],
+      "branch": "develop"
+    },
+    {
+      "id": "freelance",
+      "name": "freelance-manager",
+      "folder": "freelance-manager",
+      "repo": "freelance-manager",
+      "stack": "spring",
+      "start": "",
+      "url": "",
+      "port": null,
+      "data": [],
+      "branch": "develop"
+    }
+  ],
+  "integrationBranch": "develop",
+  "handoff": "HOME_WORKSPACE_HANDOFF.md",
+  "kitInRepo": "engineering-academy/workspace-kit",
+  "notFound": [
+    "Questions & Answers",
+    "Development Progress Manager",
+    "SAEO Personal App Hub"
+  ]
+}
