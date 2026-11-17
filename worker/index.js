@@ -14,6 +14,32 @@ import { createAuth } from '../server/auth.js';
 import { createRepository } from '../server/repository.js';
 import { seedIfFirstRun } from '../server/seed.js';
 import { durableDatabase, migrate } from './sqlite.js';
+import { STATIC_FILES } from './static.generated.js';
+import { CSP } from '../server/api.js';
+
+// Static files come from the bundle (worker/static.generated.js), with the same
+// rules as public/_headers: strict CSP, and no caching of the service worker.
+const decoded = new Map();
+function staticResponse(pathname) {
+  const key = pathname === '/' ? '/index.html' : pathname;
+  const file = STATIC_FILES[key];
+  if (!file) return null;
+  let bytes = decoded.get(key);
+  if (!bytes) {
+    const binary = atob(file.base64);
+    bytes = Uint8Array.from(binary, (c) => c.charCodeAt(0));
+    decoded.set(key, bytes);
+  }
+  const headers = {
+    'Content-Type': file.type,
+    'Content-Security-Policy': CSP,
+    'X-Content-Type-Options': 'nosniff',
+    'Referrer-Policy': 'no-referrer',
+    'Cache-Control': 'no-cache',
+  };
+  if (pathname === '/sw.js') headers['Service-Worker-Allowed'] = '/';
+  return new Response(bytes, { headers });
+}
 
 function toResponse({ status, body, headers = {} }) {
   return new Response(body === undefined ? '' : JSON.stringify(body), {
@@ -54,7 +80,10 @@ export default {
     const url = new URL(request.url);
     if (url.pathname === '/healthz') return toResponse({ status: 200, body: { ok: true } });
     const isApi = url.pathname === '/api' || url.pathname.startsWith('/api/');
-    if (!isApi && !url.pathname.startsWith('/media/')) return env.ASSETS.fetch(request);
+    if (!isApi && !url.pathname.startsWith('/media/')) {
+      const found = staticResponse(url.pathname);
+      return found ?? new Response('Not found', { status: 404, headers: { 'Content-Type': 'text/plain' } });
+    }
 
     // Never run an unprotected deployment: no password, no data.
     if ((env.ACADEMY_PASSWORD ?? '').length < 12 || !env.ACADEMY_SESSION_SECRET) {

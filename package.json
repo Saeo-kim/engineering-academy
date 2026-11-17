@@ -11,14 +11,14 @@
     "start": "node --disable-warning=ExperimentalWarning server/index.js",
     "start:public": "node --disable-warning=ExperimentalWarning --env-file=.env server/index.js",
     "dev": "node --disable-warning=ExperimentalWarning --watch server/index.js",
-    "build": "node scripts/sw-version.js --check && node scripts/check.js",
+    "build": "node scripts/sw-version.js --check && node scripts/bundle-static.js --check && node scripts/check.js",
     "test": "node --disable-warning=ExperimentalWarning --test tests/api.test.js tests/learning.test.js tests/courses.test.js tests/brand.test.js tests/deploy.test.js",
     "test:e2e": "node --disable-warning=ExperimentalWarning tests/e2e/run.js",
     "screenshots": "node --disable-warning=ExperimentalWarning scripts/screenshots.js",
     "icons": "node --disable-warning=ExperimentalWarning scripts/icons.js",
     "sw-version": "node scripts/sw-version.js",
     "cloud:dev": "wrangler dev",
-    "cloud:deploy": "node scripts/sw-version.js && node scripts/check.js && wrangler deploy",
+    "cloud:deploy": "node scripts/sw-version.js && node scripts/bundle-static.js && node scripts/check.js && wrangler deploy",
     "cloud:smoke": "node tests/worker/smoke.js"
   },
   "devDependencies": {

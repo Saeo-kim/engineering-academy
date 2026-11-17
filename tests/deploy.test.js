@@ -5,6 +5,7 @@ import { dirname, join } from 'node:path';
 import { describe, it } from 'node:test';
 import { fileURLToPath } from 'node:url';
 import { gunzipSync } from 'node:zlib';
+import { spawnSync } from 'node:child_process';
 import { CSP } from '../server/api.js';
 import { createApp } from '../server/app.js';
 import { loadConfig, platformHosts } from '../server/config.js';
@@ -119,10 +120,15 @@ describe('Cloudflare deployment', () => {
     assert.match(headers, /\/sw\.js\n\s+Cache-Control: no-cache/);
   });
 
+  it('bundles the static files that the Worker serves, kept in sync with public/', () => {
+    const out = spawnSync(process.execPath, [join(root, 'scripts/bundle-static.js'), '--check'], { encoding: 'utf8' });
+    assert.equal(out.status, 0, out.stderr);
+  });
+
   it('runs on the Free plan with a SQLite Durable Object and no committed secrets', () => {
     const config = readFileSync(join(root, 'wrangler.jsonc'), 'utf8');
     assert.match(config, /"new_sqlite_classes": \["Academy"\]/);
-    assert.match(config, /"directory": "\.\/public"/);
+    assert.doesNotMatch(config, /"assets"/, 'static files are bundled into the Worker');
     assert.doesNotMatch(config, /ACADEMY_PASSWORD"\s*:/, 'the password is a secret, never a var');
     const ignore = readFileSync(join(root, '.gitignore'), 'utf8');
     assert.match(ignore, /^\.dev\.vars$/m);
