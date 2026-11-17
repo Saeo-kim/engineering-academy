@@ -92,6 +92,8 @@ The app ships no video files and links to no specific videos: links to third-par
 
 ## Use it on your iPhone
 
+The recommended setup is a permanent cloud deployment: the app runs on Render with an always-on service, a persistent disk and HTTPS, so your computer does not need to be on. See [docs/DEPLOY.md](docs/DEPLOY.md). The options below are for running it from your own computer instead.
+
 The app runs on your computer, so your phone needs a way to reach it, and that computer must be on and running `npm run start:public`. For "any time, anywhere" access, use an always-on computer or a small server. Installing as an app and offline support need **https**.
 
 ### Option A (recommended): Tailscale, private and works anywhere

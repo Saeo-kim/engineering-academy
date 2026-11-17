@@ -303,9 +303,11 @@ export function createApp(repo, options = {}) {
 
   return createServer(async (req, res) => {
     try {
+      // Health checks come from the hosting platform's internal network with an
+      // internal Host header. The endpoint reveals nothing, so it skips the guard.
+      if (req.url === '/healthz' && req.method === 'GET') return send(res, 200, { ok: true });
       guardRequest(req, hostAllowed);
       const url = new URL(req.url, 'http://localhost');
-      if (url.pathname === '/healthz') return send(res, 200, { ok: true });
       if (url.pathname === '/api' || url.pathname.startsWith('/api/')) {
         return await routeApi(ctx, req, res, url);
       }
