@@ -17,10 +17,12 @@ foreach ($p in $registry.projects) {
   $url = $registry.owner.remote.Replace('{repo}', $p.repo)
   if (Test-Path (Join-Path $dir '.git')) {
     Write-Output "pull  $($p.folder)"
+    git -C $dir fetch origin
+    git -C $dir switch develop 2>$null; if ($LASTEXITCODE -ne 0) { git -C $dir switch -c develop --track origin/develop }
     git -C $dir pull --ff-only
   } else {
     Write-Output "clone $($p.folder)"
-    git clone $url $dir
+    git clone -b develop $url $dir
   }
 }
 Copy-Item $registryPath (Join-Path $Root 'workspace.json') -Force -ErrorAction SilentlyContinue
