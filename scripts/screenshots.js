@@ -63,9 +63,20 @@ try {
   await page.route('#/progress');
   await shot('progress');
 
+  await page.route('#/courses/robotics');
+  await shot('course-syllabus');
+  await page.route('#/courses/robotics/pid-control');
+  await shot('course-lesson');
+
   await page.setViewport(390, 844, true);
   await page.route('#/');
   await shot('mobile-dashboard');
+  await page.route('#/courses/robotics');
+  await shot('mobile-course');
+  await page.route('#/courses/robotics/forward-kinematics');
+  await shot('mobile-lesson');
+  await page.route('#/install');
+  await shot('mobile-install');
 } finally {
   await page.close();
   server.kill();

@@ -1,8 +1,9 @@
-import { createReadStream, existsSync, statSync } from 'node:fs';
+import { createReadStream, existsSync, readdirSync, statSync } from 'node:fs';
 import { createServer } from 'node:http';
-import { dirname, extname, resolve, sep } from 'node:path';
+import { dirname, extname, join, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createAuth } from './auth.js';
+import { createCourses, MEDIA_NAME, MEDIA_TYPES } from './courses.js';
 import { createEvaluator } from './evaluator.js';
 import { createLearning } from './learning.js';
 import { NotFoundError, ValidationError } from './repository.js';
@@ -17,10 +18,27 @@ const MIME = {
   '.css': 'text/css; charset=utf-8',
   '.svg': 'image/svg+xml',
   '.png': 'image/png',
+  '.ico': 'image/x-icon',
+  '.json': 'application/json; charset=utf-8',
+  '.webmanifest': 'application/manifest+json; charset=utf-8',
+  '.vtt': 'text/vtt; charset=utf-8',
+  ...MEDIA_TYPES,
 };
 
+// Lecture videos may be embedded from YouTube (privacy-enhanced domain) and
+// Vimeo, or played from any https video file. Everything else stays 'self'.
+const CSP = [
+  "default-src 'self'",
+  'frame-src https://www.youtube-nocookie.com https://player.vimeo.com',
+  "media-src 'self' https:",
+  "object-src 'none'",
+  "base-uri 'none'",
+  "form-action 'self'",
+  "frame-ancestors 'none'",
+].join('; ');
+
 const SECURITY_HEADERS = {
-  'Content-Security-Policy': "default-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'",
+  'Content-Security-Policy': CSP,
   'X-Content-Type-Options': 'nosniff',
   'Referrer-Policy': 'no-referrer',
 };
@@ -98,21 +116,76 @@ function guardRequest(req, hostAllowed) {
   }
 }
 
+// Streams a file, honouring a single HTTP Range. iPhone Safari will not play
+// video from a server that ignores Range requests, and seeking needs it too.
+function sendFile(req, res, file, headers = {}) {
+  const { size } = statSync(file);
+  const base = {
+    ...SECURITY_HEADERS,
+    'Content-Type': MIME[extname(file).toLowerCase()] ?? 'application/octet-stream',
+    'Accept-Ranges': 'bytes',
+    ...headers,
+  };
+  const range = /^bytes=(\d*)-(\d*)$/.exec(req.headers.range ?? '');
+  if (range && (range[1] || range[2])) {
+    let start;
+    let end;
+    if (range[1]) {
+      start = Number(range[1]);
+      end = range[2] ? Math.min(Number(range[2]), size - 1) : size - 1;
+    } else {
+      start = Math.max(0, size - Number(range[2])); // suffix range: the last N bytes
+      end = size - 1;
+    }
+    if (start >= size || start > end) {
+      res.writeHead(416, { ...base, 'Content-Range': `bytes */${size}` });
+      return res.end();
+    }
+    res.writeHead(206, { ...base, 'Content-Range': `bytes ${start}-${end}/${size}`, 'Content-Length': end - start + 1 });
+    if (req.method === 'HEAD') return res.end();
+    return createReadStream(file, { start, end }).pipe(res);
+  }
+  res.writeHead(200, { ...base, 'Content-Length': size });
+  if (req.method === 'HEAD') return res.end();
+  createReadStream(file).pipe(res);
+}
+
+function notFound(res) {
+  res.writeHead(404, { ...SECURITY_HEADERS, 'Content-Type': 'text/plain' });
+  return res.end('Not found');
+}
+
 function serveStatic(req, res, pathname) {
   const relative = pathname === '/' ? 'index.html' : decodeURIComponent(pathname).replace(/^\/+/, '');
   const file = resolve(PUBLIC_DIR, relative);
   const insidePublic = file === PUBLIC_DIR || file.startsWith(PUBLIC_DIR + sep);
-  if (!insidePublic || !existsSync(file) || !statSync(file).isFile()) {
-    res.writeHead(404, { ...SECURITY_HEADERS, 'Content-Type': 'text/plain' });
-    return res.end('Not found');
+  if (!insidePublic || !existsSync(file) || !statSync(file).isFile()) return notFound(res);
+  // The service worker must be able to control the whole site from /sw.js.
+  const extra = relative === 'sw.js' ? { 'Service-Worker-Allowed': '/' } : {};
+  return sendFile(req, res, file, { 'Cache-Control': 'no-cache', ...extra });
+}
+
+// Lecture videos you host yourself: files placed in the media folder
+// (data/videos by default). They are personal, so they require sign-in.
+function serveMedia(req, res, pathname, mediaDir) {
+  let name;
+  try {
+    name = decodeURIComponent(pathname.slice('/media/'.length));
+  } catch {
+    return notFound(res);
   }
-  res.writeHead(200, {
-    ...SECURITY_HEADERS,
-    'Content-Type': MIME[extname(file)] ?? 'application/octet-stream',
-    'Cache-Control': 'no-cache',
-  });
-  if (req.method === 'HEAD') return res.end();
-  createReadStream(file).pipe(res);
+  if (!mediaDir || !MEDIA_NAME.test(name)) return notFound(res);
+  const file = resolve(mediaDir, name);
+  if (!file.startsWith(resolve(mediaDir) + sep) || !existsSync(file) || !statSync(file).isFile()) return notFound(res);
+  return sendFile(req, res, file, { 'Cache-Control': 'private, max-age=3600' });
+}
+
+function listMedia(mediaDir) {
+  if (!mediaDir || !existsSync(mediaDir)) return [];
+  return readdirSync(mediaDir)
+    .filter((name) => MEDIA_NAME.test(name) && statSync(join(mediaDir, name)).isFile())
+    .sort((a, b) => a.localeCompare(b))
+    .map((name) => ({ name, url: `/media/${encodeURIComponent(name)}`, size: statSync(join(mediaDir, name)).size }));
 }
 
 function parseId(value) {
@@ -121,7 +194,7 @@ function parseId(value) {
 }
 
 async function routeApi(ctx, req, res, url) {
-  const { repo, learning, auth, evaluator } = ctx;
+  const { repo, learning, auth, evaluator, courses } = ctx;
   const parts = url.pathname.split('/').filter(Boolean).slice(1); // drop "api"
   const { method } = req;
   const query = Object.fromEntries(url.searchParams);
@@ -163,6 +236,19 @@ async function routeApi(ctx, req, res, url) {
     if (name === 'links' && method === 'DELETE') return send(res, 200, learning.removeLink(await readJson(req)));
     if (name === 'quizzes' && method === 'GET') return send(res, 200, learning.quizHistory());
     if (name === 'quizzes' && method === 'POST') return send(res, 201, learning.createQuiz(await readJson(req)));
+    if (name === 'courses' && method === 'GET') return send(res, 200, courses.list());
+    if (name === 'media' && method === 'GET') return send(res, 200, listMedia(ctx.mediaDir));
+  }
+
+  // Courses: /courses/:track, /courses/:track/lessons/:lesson[/save]
+  if (parts[0] === 'courses' && parts.length >= 2) {
+    const [, trackId, sub, lessonId, action] = parts;
+    if (parts.length === 2 && method === 'GET') return send(res, 200, courses.track(trackId));
+    if (sub === 'lessons' && lessonId) {
+      if (parts.length === 4 && method === 'GET') return send(res, 200, courses.lesson(trackId, lessonId));
+      if (parts.length === 4 && method === 'PUT') return send(res, 200, courses.updateLesson(trackId, lessonId, await readJson(req)));
+      if (parts.length === 5 && action === 'save' && method === 'POST') return send(res, 201, courses.saveToLibrary(trackId, lessonId));
+    }
   }
 
   if (parts[0] === 'quizzes' && parts.length === 2 && method === 'GET') return send(res, 200, learning.getQuiz(parseId(parts[1])));
@@ -210,6 +296,8 @@ export function createApp(repo, options = {}) {
     evaluator,
     learning: options.learning ?? createLearning(repo, evaluator),
     auth: options.auth ?? createAuth(),
+    courses: options.courses ?? createCourses(repo),
+    mediaDir: options.mediaDir ?? null,
   };
   const hostAllowed = hostMatcher(options.allowedHosts);
 
@@ -222,6 +310,10 @@ export function createApp(repo, options = {}) {
         return await routeApi(ctx, req, res, url);
       }
       if (req.method !== 'GET' && req.method !== 'HEAD') throw new HttpError(405, 'Method not allowed.');
+      if (url.pathname.startsWith('/media/')) {
+        if (!ctx.auth.isAuthenticated(req)) throw new HttpError(401, 'Sign in to continue.');
+        return serveMedia(req, res, url.pathname, ctx.mediaDir);
+      }
       return serveStatic(req, res, url.pathname);
     } catch (err) {
       if (res.headersSent) return res.destroy();

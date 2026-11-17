@@ -14,6 +14,8 @@ const flag = (value) => /^(1|true|yes)$/i.test(value ?? '');
 
 const config = {
   dbPath: env.ACADEMY_DB ?? join(root, 'data', 'academy.db'),
+  // Lecture videos you host yourself, served at /media/<file name>.
+  mediaDir: env.ACADEMY_MEDIA_DIR ?? join(root, 'data', 'videos'),
   port: Number(env.PORT ?? 4310),
   // Loopback by default: without a password this app must not be reachable from a network.
   host: env.HOST ?? '127.0.0.1',
@@ -39,7 +41,7 @@ const db = openDatabase(config.dbPath);
 const repo = createRepository(db);
 const seeded = config.seed && seedIfFirstRun(repo);
 const auth = createAuth({ password: config.password, secret: config.sessionSecret, secureCookies: config.secureCookies, trustProxy: config.trustProxy });
-const server = createApp(repo, { auth, allowedHosts: config.allowedHosts, evaluator: createEvaluator(config.evaluator) });
+const server = createApp(repo, { auth, allowedHosts: config.allowedHosts, evaluator: createEvaluator(config.evaluator), mediaDir: config.mediaDir });
 
 server.on('error', (err) => {
   if (err.code === 'EADDRINUSE') {

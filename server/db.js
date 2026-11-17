@@ -116,6 +116,21 @@ export const MIGRATIONS = [
     completed_at TEXT
   );
   `,
+  // v3: course progress. Curriculum content lives in server/curriculum/; this
+  // table holds only what is yours: completion, the attached lecture video,
+  // where you stopped watching, and the Knowledge Library copy of the lesson.
+  `
+  CREATE TABLE lesson_progress (
+    track_id TEXT NOT NULL,
+    lesson_id TEXT NOT NULL,
+    completed_at TEXT,
+    video_url TEXT NOT NULL DEFAULT '',
+    video_position REAL NOT NULL DEFAULT 0,
+    knowledge_id INTEGER,
+    updated_at TEXT NOT NULL,
+    PRIMARY KEY (track_id, lesson_id)
+  );
+  `,
 ];
 
 export function openDatabase(path) {
