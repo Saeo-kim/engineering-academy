@@ -45,3 +45,14 @@ npm run cloud:smoke -- https://engineering-academy.<you>.workers.dev <password>
 `Dockerfile` and `render.yaml` describe an always-on Starter instance with a 1 GB persistent disk. It is simpler but costs money, runs in one region, and serves every file from that region. Render's free plan is not suitable: it sleeps (slow first load) and has no persistent disk (data is lost on redeploy).
 
 The same Docker image also runs on Railway or Fly.io with a volume at `/var/data`.
+
+## Resetting the sign-in password
+
+The password is a Cloudflare secret (`ACADEMY_PASSWORD`). Cloudflare never shows a secret's value after it is saved, so a lost password cannot be read back. It can only be replaced. Only someone who can log in to the Cloudflare account can do this, so the account's own login and two-factor protection guard it. The new password is never written to Git, logs, or the database, and your records are untouched.
+
+1. Open the Cloudflare dashboard and go to **Workers & Pages → engineering-academy → Settings → Variables and Secrets**.
+2. Next to `ACADEMY_PASSWORD`, choose **Edit**, enter the new password (at least 12 characters), and save.
+3. Redeploy so the running app picks up the new value (`npm run cloud:deploy` from a machine with Wrangler and the account's API token, or a new deployment from the dashboard).
+4. Sign in on the phone with the new password.
+
+Changing `ACADEMY_SESSION_SECRET` signs out every existing session. To do that, replace it the same way as the password (a long random string, for example 32 random bytes, base64url-encoded).
