@@ -33,7 +33,7 @@ npm run cloud:deploy                          # versions the service worker, che
 npm run cloud:smoke -- https://engineering-academy.<you>.workers.dev <password>
 ```
 
-Set `ACADEMY_LOCATION_HINT` in `wrangler.jsonc` (`apac`, `enam`, `wnam`, `weur`, ...) before the first deploy, so the database is created near where you use the app. It cannot move later.
+`ACADEMY_LOCATION_HINT` in `wrangler.jsonc` is set to `apac` (Asia-Pacific, for South Korea). The database is created there on first use and cannot move later.
 
 ### Data
 

@@ -20,7 +20,7 @@
   "vars": {
     // Where the database is created the first time: "apac", "enam", "weur", ...
     // Pick the region you use the app from; empty means "near the first visitor".
-    "ACADEMY_LOCATION_HINT": ""
+    "ACADEMY_LOCATION_HINT": "apac"
   },
   "observability": { "enabled": true }
 }
