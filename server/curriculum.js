@@ -7,6 +7,7 @@
 // plus general computer basics, prompt writing and PowerShell setup.
 
 import { KNOWLEDGE_V2, LINKS_V2, WORKFLOWS_V2 } from './curriculum2.js';
+import { KNOWLEDGE_V3, LINKS_V3 } from './curriculum3.js';
 
 const L = (...lines) => lines.join('\n');
 
@@ -788,7 +789,7 @@ export const TRACKS = [
     id: 'jpa',
     title: '2. JPA 시험',
     intro: '시험 구조 → A 연관관계(Review.store 읽는 법) → B EAGER·LAZY·N+1 → C 영속성 → D JPQL.',
-    items: ['knowledge:jpa-exam-structure', 'knowledge:review-store-notation', 'knowledge:owner-mappedby', 'knowledge:eager-lazy-truth', 'knowledge:n-plus-one-ko', 'knowledge:lazy-proxy', 'errors:lazy-init', 'knowledge:persistence-context', 'knowledge:jpql-repository', 'commands:show-sql', 'workflows:jpa-exam-routine'],
+    items: ['knowledge:repository-findall', 'knowledge:jpa-exam-structure', 'knowledge:review-store-notation', 'knowledge:owner-mappedby', 'knowledge:eager-lazy-truth', 'knowledge:n-plus-one-ko', 'knowledge:lazy-proxy', 'errors:lazy-init', 'knowledge:persistence-context', 'knowledge:jpql-repository', 'commands:show-sql', 'workflows:jpa-exam-routine'],
   },
   {
     id: 'verify',
@@ -809,6 +810,7 @@ export const TRACKS = [
 const PACKS = [
   { flag: 'curriculum_ko_v1', ids: 'curriculum_ko_v1_ids', records: () => ({ knowledge: KNOWLEDGE, commands: COMMANDS, errors: ERRORS, workflows: WORKFLOWS }), links: () => LINKS },
   { flag: 'curriculum_ko_v2', ids: 'curriculum_ko_v2_ids', records: () => ({ knowledge: KNOWLEDGE_V2, workflows: WORKFLOWS_V2 }), links: () => LINKS_V2 },
+  { flag: 'curriculum_en_v3', ids: 'curriculum_en_v3_ids', records: () => ({ knowledge: KNOWLEDGE_V3 }), links: () => LINKS_V3 },
 ];
 
 function allIds(db) {
