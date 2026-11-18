@@ -52,7 +52,9 @@ The password is a Cloudflare secret (`ACADEMY_PASSWORD`). Cloudflare never shows
 
 1. Open the Cloudflare dashboard and go to **Workers & Pages → engineering-academy → Settings → Variables and Secrets**.
 2. Next to `ACADEMY_PASSWORD`, choose **Edit**, enter the new password (at least 12 characters), and save.
-3. Redeploy so the running app picks up the new value (`npm run cloud:deploy` from a machine with Wrangler and the account's API token, or a new deployment from the dashboard).
+3. Confirm `ACADEMY_SESSION_SECRET` is still listed (see below), then redeploy so the running app picks up the new value (`npm run cloud:deploy` from a machine with Wrangler and the account's API token).
 4. Sign in on the phone with the new password.
 
-Changing `ACADEMY_SESSION_SECRET` signs out every existing session. To do that, replace it the same way as the password (a long random string, for example 32 random bytes, base64url-encoded).
+Changing `ACADEMY_SESSION_SECRET` signs out every existing session. Set it from a machine with Wrangler and the account's API token, so its value is never shown: `node -e "process.stdout.write(require('crypto').randomBytes(32).toString('base64url'))" | npx wrangler secret put ACADEMY_SESSION_SECRET`, then redeploy.
+
+**If the site says "not configured yet"**, one of the two secrets is missing or the password is shorter than 12 characters. Check both names exist (`npx wrangler secret list`). Saving a secret in the dashboard once removed `ACADEMY_SESSION_SECRET` in this deployment, so after any dashboard change, confirm both are still listed.
