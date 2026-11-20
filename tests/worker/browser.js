@@ -84,7 +84,8 @@ await step('Create a record through the form', async () => {
   await page.click('#save-record');
   await page.waitFor(`/^#\\/knowledge\\/\\d+$/.test(location.hash)`, { label: 'redirect to record', timeout: 10000 });
   recordId = Number((await page.evaluate('location.hash')).split('/').pop());
-  assert.equal(await page.text('#view h1'), title);
+  // The record page renders after the URL changes; wait for its title rather than reading early.
+  await page.waitFor(`document.querySelector('#view h1')?.innerText === ${JSON.stringify(title)}`, { label: 'record page rendered', timeout: 15000 });
 });
 
 await step('Edit the record and see the change', async () => {
