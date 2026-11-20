@@ -106,13 +106,13 @@ export function codeBlock(text, { copy = false, tone, plain = false } = {}) {
       h(
         'div',
         { class: 'code-tools' },
-        explorable && h('a', { class: 'copy', href: '#/explain', title: '이 코드를 해부실에서 한 줄씩 해석', onclick: () => stashCode(text) }, '해부'),
+        explorable && h('a', { class: 'copy', href: '#/explain', title: 'Explain this code line by line in the Code Explainer', onclick: () => stashCode(text) }, 'Explain'),
         copy && copyButton(text),
       ),
   );
 }
 
-// Hands a code block to the 코드 해부실 page.
+// Hands a code block to the Code Explainer page.
 export function stashCode(text) {
   try {
     sessionStorage.setItem('ea-explain-code', text);

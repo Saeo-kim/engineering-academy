@@ -34,7 +34,7 @@ server.on('error', (err) => {
 
 server.listen(config.port, config.host, () => {
   if (seeded) console.log('First run: added example records (labelled EXAMPLE in the app).');
-  if (curriculumAdded) console.log('Installed the Korean curriculum (Curriculum page).');
+  if (curriculumAdded) console.log('Installed the study curriculum (Curriculum page).');
   console.log(`Engineering Academy running at http://localhost:${config.port}`);
   console.log(`Data file: ${config.dbPath}`);
   if (auth.enabled) console.log('Password protection: on');

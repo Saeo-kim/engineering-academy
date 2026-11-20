@@ -1,4 +1,4 @@
-/* 코드 해부: explorable code, hover tooltip, explanation drawer, curriculum. */
+/* Code Explainer: explorable code, hover tooltip, explanation drawer, curriculum. */
 
 .xterm { border-bottom: 1px dotted color-mix(in srgb, var(--accent) 70%, transparent); border-radius: 2px; cursor: help; }
 .xterm.gen { border-bottom-color: color-mix(in srgb, var(--muted) 45%, transparent); }
@@ -39,13 +39,13 @@
 .xd-deep:hover { border-color: var(--accent); }
 .xd-search { display: inline-block; margin-top: 20px; font-size: 13px; }
 
-/* 공부 경로 */
+/* Study trail */
 .trail { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 7px 28px; border-bottom: 1px solid var(--line); background: var(--sidebar); font-size: 12.5px; }
 .trail-label { color: var(--muted); font-family: var(--mono); }
 .trail-item { max-width: 240px; overflow: hidden; padding: 2px 9px; border: 1px solid var(--line); border-radius: 999px; color: var(--text-2); text-decoration: none; text-overflow: ellipsis; white-space: nowrap; }
 .trail-item:hover { border-color: var(--accent); color: var(--text); }
 
-/* 코드 해부실 */
+/* Code Explainer */
 .explain-grid { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 18px; align-items: start; }
 .explain-input { padding: 0 18px 12px; }
 .explain-input textarea { width: 100%; padding: 10px 12px; background: var(--code-bg); border: 1px solid var(--line); border-radius: 6px; color: var(--text); font: 13.5px/1.55 var(--mono); resize: vertical; }
@@ -65,7 +65,7 @@
 .chip { padding: 3px 9px; background: var(--panel-raised); border: 1px solid var(--line); border-radius: 999px; color: var(--text-2); font: 12px var(--mono); cursor: pointer; }
 .chip:hover { border-color: var(--accent); color: var(--text); }
 
-/* 커리큘럼 */
+/* Curriculum */
 .track { margin-bottom: 14px; }
 .track-intro { padding: 0 18px 8px; color: var(--text-2); font-size: 14px; }
 .track-list { margin: 0; padding: 0 10px 12px; list-style: none; }

@@ -84,7 +84,6 @@ export function createCourses(repo, tracks = TRACKS) {
     return {
       id: track.id,
       title: track.title,
-      titleKo: track.titleKo ?? null,
       tagline: track.tagline,
       level: track.level,
       modules: track.modules.length,

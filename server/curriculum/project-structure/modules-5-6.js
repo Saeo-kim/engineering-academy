@@ -5,30 +5,28 @@ const tree = (text) => '```\n' + text.trim() + '\n```';
 
 export const MODULE_05 = moduleOf(
   'backend',
-  'Backend Architecture',
-  '백엔드 구조',
+  'Module 05: Backend Architecture',
   'Intermediate',
-  '요청이 들어와 응답이 나갈 때까지 Controller, Service, Repository, Entity, DTO가 각자 맡는 일과 서로 연결되는 방식을 배웁니다.',
-  ['각 계층(Controller, Service, Repository)의 책임을 구분할 수 있다.', 'Entity와 DTO를 왜 나누는지 설명할 수 있다.', '요청 한 번이 여러 파일을 거치는 경로를 그릴 수 있다.'],
+  'How a request flows from arrival to response through Controller, Service, Repository, Entity, and DTO. You will learn what each one is responsible for and how they connect.',
+  ['Tell apart the responsibilities of each layer (Controller, Service, Repository).', 'Explain why Entity and DTO are separated.', 'Draw the path that one request takes through several files.'],
   [
     lesson(
       'backend-controller',
       'Controller',
-      '컨트롤러',
       15,
-      'Controller는 브라우저나 다른 프로그램의 요청(HTTP)을 받아, 어떤 기능을 실행할지 정하고, 결과를 응답으로 돌려주는 계층입니다.',
+      'A Controller is the layer that receives requests (HTTP) from a browser or another program, decides which feature to run, and returns the result as a response.',
       {
-        what: '`@RestController`나 `@Controller`가 붙은 자바 클래스입니다. `@GetMapping("/courses")`처럼 주소와 메서드를 연결합니다. 요청을 받는 "접수 창구"입니다.',
-        why: '요청을 받는 방법(주소, 형식, 인증)과 실제 일(계산, 저장)을 나누기 위해 존재합니다. 창구는 얇게 두고 일은 Service에 맡깁니다.',
-        where: '`src/main/java/.../controller/` 폴더에 둡니다. 주소 규칙에 따라 기능별 파일로 나눕니다.',
-        missing: 'Controller가 없으면 브라우저가 어떤 주소로도 기능을 쓸 수 없습니다. 주소가 겹치면 어느 쪽이 처리할지 오류가 납니다.',
-        connects: 'Controller는 Service를 호출하고, Service의 결과(DTO)를 JSON으로 바꿔 응답합니다. HTML을 반환하는 경우는 `templates`의 화면 이름을 돌려줍니다.',
-        usage: '`@GetMapping("/api/courses")`가 붙은 메서드가 "코스 목록 API"의 시작점입니다.',
+        what: 'It is a Java class marked `@RestController` or `@Controller`. `@GetMapping("/courses")` links an address to a method. It is the reception desk for requests.',
+        why: 'It separates how a request arrives (address, format, authentication) from the actual work (calculating, saving). Keep the reception desk thin and leave the work to the Service.',
+        where: 'Put it in the `.../controller/` folder. Split it into one file per feature, following the address rules.',
+        missing: 'Without a Controller, the browser cannot use any feature at any address. If two addresses clash, the error says which handler is ambiguous.',
+        connects: 'The Controller calls a Service and turns the result (a DTO) into JSON for the response. For HTML, it returns the name of a screen in `templates`.',
+        usage: 'The method marked `@GetMapping("/api/courses")` is the entry point of the "course list API."',
       },
       {
         keyTerms: [
-          ['HTTP 요청 (request)', '브라우저가 서버에 보내는 질문. 주소, 메서드(GET/POST), 본문으로 이루어집니다.'],
-          ['엔드포인트 (endpoint)', '요청을 받는 주소와 메서드의 조합.'],
+          ['HTTP request', 'A question the browser sends to the server, made of an address, a method (GET/POST), and a body.'],
+          ['endpoint', 'The combination of an address and a method that receives a request.'],
         ],
         example: tree(`
 controller/CourseController.java
@@ -39,10 +37,10 @@ public class CourseController {
   public List<CourseDto> list() { return courseService.list(); }
 }
 `),
-        practice: 'Controller 파일 하나를 찾아 `@GetMapping`이나 `@PostMapping` 줄을 모두 적고, 각각 어떤 주소가 되는지 적어 보세요.',
+        practice: 'Open a Controller file, list every `@GetMapping` and `@PostMapping` line, and write the address each one produces.',
         check: [
-          { q: 'Controller의 가장 중요한 역할은?', a: '요청을 받아 올바른 Service를 호출하고, 결과를 응답으로 돌려주는 것입니다.' },
-          { q: 'Controller에 계산 로직을 많이 쓰면 생기는 문제는?', a: '같은 계산을 다른 곳에서 재사용하기 어렵고, 테스트가 복잡해집니다.' },
+          { q: 'What is the most important job of a Controller?', a: 'To receive the request, call the right Service, and return the result as a response.' },
+          { q: 'What problem comes from putting a lot of calculation logic in a Controller?', a: 'The same calculation is hard to reuse elsewhere, and testing becomes complicated.' },
         ],
         videoQuery: 'spring boot controller service repository layers explained',
       },
@@ -50,56 +48,54 @@ public class CourseController {
     lesson(
       'backend-service',
       'Service',
-      '서비스',
       15,
-      'Service는 "무엇을 해야 하는가"를 정하는 계층입니다. 규칙을 검사하고, 여러 Repository를 조합해 하나의 기능을 완성합니다.',
+      'A Service is the layer that decides "what must be done." It checks the rules, and combines several Repositories to complete one feature.',
       {
-        what: '`@Service`가 붙은 클래스입니다. 예: "수강 완료 처리하기"는 진도를 확인하고, 완료 기록을 저장하고, 다음 강의를 찾는 일을 묶습니다.',
-        why: '업무 규칙을 한 곳에 모아 두면, 같은 규칙을 웹 화면과 API와 테스트가 모두 같은 방식으로 따릅니다.',
-        where: '`.../service/` 폴더에 둡니다. Controller와 Repository 사이에 놓입니다.',
-        missing: 'Service가 없으면 규칙이 Controller마다 흩어져, 한 곳을 고쳐도 다른 곳은 그대로인 버그가 생깁니다.',
-        connects: 'Controller가 Service를 부르고, Service가 Repository로 데이터를 읽고 씁니다. 결과는 DTO로 Controller에 돌아갑니다.',
-        usage: '결제 가능 여부 확인, 권한 확인, 여러 테이블을 함께 바꾸는 작업이 Service에 들어갑니다.',
+        what: 'It is a class marked `@Service`. For example, "mark a lesson as completed" checks progress, saves the completion record, and finds the next lesson. The Service groups all of that work together.',
+        why: 'Collecting business rules in one place means the web screen, the API, and the tests all follow the same rule in the same way.',
+        where: 'Put it in the `.../service/` folder. It sits between the Controller and the Repository.',
+        missing: 'Without a Service, rules scatter across each Controller, so fixing one place leaves the others unchanged, which causes bugs.',
+        connects: 'The Controller calls the Service, and the Service reads and writes data through Repositories. The result returns to the Controller as a DTO.',
+        usage: 'Checking whether a payment is allowed, checking permissions, and updating several tables together all go in the Service.',
       },
       {
         keyTerms: [
-          ['비즈니스 로직 (business logic)', '업무 규칙을 코드로 옮긴 것.'],
-          ['트랜잭션 (transaction)', '여러 변경을 전부 성공하거나 전부 취소하는 단위. Service에서 주로 묶습니다.'],
+          ['business logic', 'Business rules written as code.'],
+          ['transaction', 'A unit where several changes all succeed or are all cancelled. Services usually group them.'],
         ],
         example: tree(`
 service/CourseService.java
 @Service
 public class CourseService {
   public void complete(Long lessonId) {
-    // 1. 진도 확인  2. 완료 저장  3. 다음 강의 찾기
+    // 1. check progress  2. save completion  3. find the next lesson
   }
 }
 `),
-        practice: 'Service 메서드 하나를 골라 그 안에서 호출하는 Repository 메서드를 적고, 그 메서드가 해결하는 업무 규칙을 한 문장으로 적어 보세요.',
+        practice: 'Pick a Service method, write down the Repository methods it calls, and state in one sentence the business rule that it implements.',
         check: [
-          { q: 'Service와 Controller의 차이는?', a: 'Controller는 요청을 받아 전달하고, Service는 업무 규칙에 따라 일을 처리합니다.' },
-          { q: 'Service 안에 HTTP 응답 코드를 쓰면 안 되는 이유는?', a: '같은 업무를 웹이 아닌 다른 방식(배치, 테스트)에서도 쓰려면 HTTP에 묶이면 안 되기 때문입니다.' },
+          { q: 'What is the difference between a Service and a Controller?', a: 'The Controller receives requests and passes them on; the Service does the work according to the business rules.' },
+          { q: 'Why should a Service not return HTTP status codes?', a: 'The same business work may also run in a different context (a batch job, a test), so it must not depend on HTTP.' },
         ],
       },
     ),
     lesson(
       'backend-repository',
       'Repository',
-      '리포지토리',
       15,
-      'Repository는 데이터베이스와 대화하는 계층입니다. 저장, 조회, 수정, 삭제를 담당하며, Service는 SQL을 직접 쓰지 않고 Repository를 통해 데이터를 다룹니다.',
+      'A Repository is the layer that talks to the database. It handles saving, reading, updating, and deleting. The Service does not write SQL directly; it works with data through a Repository.',
       {
-        what: '`interface ...Repository extends JpaRepository<...>`처럼 쓰는 인터페이스입니다. Spring Data JPA가 구현을 만들어 줍니다. 이 course 앱에서는 `repository.js`가 같은 역할을 합니다.',
-        why: '데이터 저장 방식(SQL, 파일, 메모리)을 Service와 분리하면, DB를 바꿔도 업무 코드는 그대로 둘 수 있습니다.',
-        where: '`.../repository/` 폴더에 둡니다. Entity와 짝을 이룹니다.',
-        missing: 'Repository가 없으면 Service가 SQL을 직접 써야 해서 업무와 저장 코드가 뒤섞입니다.',
-        connects: 'Repository는 Entity 클래스를 다루고, Service에서 호출됩니다. 데이터가 없으면 `Optional.empty()`를 돌려줍니다.',
-        usage: '`findById`, `save`, `findAll` 같은 기본 메서드가 Repository에서 바로 쓰입니다.',
+        what: 'It is an interface written like `interface ...Repository extends JpaRepository<...>`. Spring Data JPA creates the implementation for you. In this course app, `repository.js` plays the same role.',
+        why: 'Separating how data is stored (SQL, files, memory) from the Service means you can change the database without changing the business code.',
+        where: 'Put it in the `.../repository/` folder. It pairs with an Entity.',
+        missing: 'Without a Repository, the Service must write SQL itself, which mixes business logic with storage code.',
+        connects: 'The Repository works with Entity classes, and the Service calls it. When no data exists, it returns `Optional.empty()`.',
+        usage: 'Basic methods such as `findById`, `save`, and `findAll` are used directly from the Repository.',
       },
       {
         keyTerms: [
-          ['Repository 패턴', '데이터 접근 코드를 한 계층에 모으는 설계 방식.'],
-          ['JPA', 'Java에서 객체와 데이터베이스 테이블을 연결하는 표준 방식.'],
+          ['Repository pattern', 'A design that gathers data-access code in one layer.'],
+          ['JPA', 'The standard Java way to connect objects with database tables.'],
         ],
         example: tree(`
 repository/CourseRepository.java
@@ -107,138 +103,133 @@ public interface CourseRepository extends JpaRepository<Course, Long> {
   List<Course> findByCategory(String category);
 }
 `),
-        practice: 'Repository 인터페이스를 하나 찾아 그 안의 메서드 이름을 적고, 각 메서드가 어떤 조회를 하는지 추측해 적어 보세요.',
+        practice: 'Find a Repository interface, write down the method names inside it, and guess what query each method performs.',
         check: [
-          { q: 'Service가 SQL을 직접 쓰지 않게 하는 이유는?', a: '저장 방식을 바꿔도 업무 코드를 고치지 않게 하고, 역할을 분리하기 위해서입니다.' },
-          { q: 'Repository와 Entity의 관계는?', a: 'Repository는 Entity를 저장하고 조회하는 창구입니다.' },
+          { q: 'Why keep the Service from writing SQL directly?', a: 'So that changing the storage method does not require changing the business code, and so that the roles stay separate.' },
+          { q: 'What is the relationship between a Repository and an Entity?', a: 'The Repository is the gateway that saves and reads Entity objects.' },
         ],
       },
     ),
     lesson(
       'backend-entity',
       'Entity',
-      '엔티티',
       15,
-      'Entity는 데이터베이스 테이블 한 줄을 자바 객체로 나타낸 클래스입니다. `@Entity`가 붙고, 필드 하나가 열 하나에 대응합니다.',
+      'An Entity is a Java class that represents one row of a database table. It is marked `@Entity`, and each field corresponds to one column.',
       {
-        what: '예: `@Entity class Course { @Id Long id; String title; }`. 이 클래스의 객체 하나가 `course` 테이블의 한 줄입니다.',
-        why: '데이터를 다룰 때 SQL 문자열 대신 객체로 다루면 실수가 줄고 코드가 읽기 쉬워집니다.',
-        where: '`.../entity/` 또는 `.../domain/` 폴더에 둡니다. 데이터베이스 구조를 정하는 핵심 파일입니다.',
-        missing: 'Entity가 없으면 테이블이 만들어지지 않고 Repository가 데이터를 다룰 대상이 없습니다.',
-        connects: 'Repository가 Entity를 저장하고, Service가 Entity를 바꿉니다. 응답으로 내보낼 때는 DTO로 옮깁니다.',
-        usage: 'Entity의 필드를 바꾸면 데이터베이스 열도 바뀌므로, 마이그레이션 없이 바꾸면 기존 데이터가 깨질 수 있습니다.',
+        what: 'For example: `@Entity class Course { @Id Long id; String title; }`. One object of this class is one row of the `course` table.',
+        why: 'Working with data as objects instead of SQL strings reduces mistakes and makes code easier to read.',
+        where: 'Put it in the `.../entity/` or `.../domain/` folder. It is the key file that defines the database structure.',
+        missing: 'Without an Entity, no table is created and the Repository has nothing to work on.',
+        connects: 'The Repository saves Entities, and the Service changes them. When sending data out in a response, the Entity is converted to a DTO.',
+        usage: 'Changing an Entity field also changes the database column, so changing it without a migration can break existing data.',
       },
       {
         keyTerms: [
-          ['엔티티 (Entity)', '데이터베이스 테이블과 대응하는 클래스.'],
-          ['테이블 (table)', '행과 열로 데이터를 저장하는 구조.'],
-          ['기본 키 (primary key)', '행을 구별하는 값. `@Id`로 표시합니다.'],
+          ['Entity', 'A class that corresponds to a database table.'],
+          ['table', 'A structure that stores data in rows and columns.'],
+          ['primary key', 'The value that tells rows apart. Marked with `@Id`.'],
         ],
         example: tree(`
 entity/Course.java
 @Entity
 public class Course {
   @Id Long id;
-  String title;      // course 테이블의 title 열
+  String title;      // the title column of the course table
 }
 `),
-        practice: 'Entity 클래스 하나를 찾아 `@Id`가 붙은 필드와 나머지 필드를 적고, 각각 테이블의 열로 어떻게 보일지 그려 보세요.',
+        practice: 'Find an Entity class, list the field marked `@Id` and the other fields, and draw how each one would look as a table column.',
         check: [
-          { q: 'Entity 한 객체는 테이블에서 무엇에 해당하나요?', a: '테이블의 한 행(row)입니다.' },
-          { q: 'Entity 필드를 바꾸면 무엇을 조심해야 하나요?', a: '데이터베이스 열과 기존 데이터가 맞는지 확인해야 합니다.' },
+          { q: 'What does one Entity object correspond to in a table?', a: 'One row.' },
+          { q: 'What should you watch out for when changing an Entity field?', a: 'That the database column and the existing data still match.' },
         ],
       },
     ),
     lesson(
       'backend-dto',
       'DTO',
-      'DTO (데이터 전송 객체)',
       15,
-      'DTO(Data Transfer Object)는 계층 사이나 API 응답에서 주고받을 데이터만 담은 객체입니다. Entity를 그대로 내보내지 않고, 필요한 값만 골라 옮깁니다.',
+      'A DTO (Data Transfer Object) is an object that carries only the data passed between layers or returned from the API. It does not send the Entity as it is; it picks just the values needed.',
       {
-        what: '예: `record CourseDto(String title, int minutes)`. Entity의 여러 필드 중 화면에 필요한 두 개만 담을 수 있습니다.',
-        why: 'Entity를 그대로 내보내면 비밀번호나 내부 ID까지 노출됩니다. 또 데이터베이스 구조가 바뀌어도 API 형식은 유지할 수 있습니다.',
-        where: '`.../dto/` 폴더나 Controller 근처에 둡니다.',
-        missing: 'DTO가 없으면 Entity가 응답에 그대로 나가 민감한 정보가 노출되거나, 응답 형식이 DB 구조에 묶입니다.',
-        connects: 'Service가 Entity를 DTO로 바꾸어 Controller에 주고, Controller는 DTO를 JSON으로 응답합니다. 요청 본문도 DTO로 받습니다.',
-        usage: 'REST API 응답의 모든 목록과 상세 화면 데이터가 대부분 DTO입니다.',
+        what: 'For example: `record CourseDto(String title, int minutes)`. From an Entity with many fields, it can carry only the two the screen needs.',
+        why: 'Sending the Entity directly exposes internal fields such as passwords and IDs. A DTO also lets the API shape stay the same even when the database structure changes.',
+        where: 'Put it in a `.../dto/` folder, or near the Controller.',
+        missing: 'Without DTOs, the Entity goes out in responses, leaking sensitive information or tying the API format to the database structure.',
+        connects: 'The Service converts an Entity to a DTO and gives it to the Controller, which returns the DTO as JSON. Requests are also received as DTOs.',
+        usage: 'Almost all list and detail screen data in REST APIs are DTOs.',
       },
       {
         keyTerms: [
-          ['DTO', '계층 사이를 오가는 데이터만 담은 전달용 객체.'],
-          ['매핑 (mapping)', 'Entity와 DTO 사이에서 값을 옮기는 일.'],
+          ['DTO', 'A transport-only object that carries just the data that moves between layers.'],
+          ['mapping', 'Copying values between an Entity and a DTO.'],
         ],
         example: tree(`
 dto/CourseSummary.java
 public record CourseSummary(Long id, String title, int lessonCount) {}
 `),
-        practice: 'API 응답에 어떤 값이 들어 있는지 보고, 그 값이 Entity의 어떤 필드에서 왔는지 연결해 적어 보세요.',
+        practice: 'Look at what values an API response contains, and for each one connect it to the Entity field it came from.',
         check: [
-          { q: 'DTO를 쓰는 이유 두 가지는?', a: '필요한 값만 노출해 보안을 지키고, 데이터베이스 구조와 API 형식을 분리하기 위해서입니다.' },
-          { q: 'DTO와 Entity는 같은 객체인가요?', a: '다릅니다. Entity는 저장을 위한 객체이고, DTO는 전달을 위한 객체입니다.' },
+          { q: 'Give two reasons for using a DTO.', a: 'It exposes only the needed values (security), and it separates the database structure from the API format.' },
+          { q: 'Are a DTO and an Entity the same kind of object?', a: 'No. An Entity is for storage; a DTO is for transfer.' },
         ],
       },
     ),
     lesson(
       'backend-relationships',
       'Relationships between these components',
-      '백엔드 구성 요소의 관계',
       20,
-      '요청 한 번은 Controller → Service → Repository → Entity 순서로 내려갔다가, DTO로 바뀌어 Controller를 거쳐 응답으로 올라옵니다.',
+      'One request goes down through Controller → Service → Repository → Entity, becomes a DTO, and goes back up through the Controller as a response.',
       {
-        what: '각 계층은 바로 아래 계층만 부릅니다. 예: Controller는 Repository를 직접 부르지 않고 Service를 부릅니다. 이 규칙이 계층 구조의 핵심입니다.',
-        why: '규칙을 지키면 어느 파일을 고쳐도 영향 범위를 예측할 수 있습니다. 직접 부르기 시작하면 모든 파일이 서로 얽힙니다.',
-        where: '폴더 구조가 이 관계를 그대로 보여 줍니다: `controller`, `service`, `repository`, `entity`, `dto`.',
-        missing: '계층을 건너뛰면(예: Controller가 Repository 직접 호출) 업무 규칙이 빠지고, 테스트가 어려워집니다.',
-        connects: 'Controller는 Service에, Service는 Repository와 Entity에, Repository는 데이터베이스에 연결됩니다. DTO는 Controller와 Service 사이를 오갑니다.',
-        usage: '프로젝트를 처음 읽을 때 `controller`에서 시작해 `service`, `repository` 순서로 따라가면 기능 하나를 추적할 수 있습니다.',
+        what: 'Each layer calls only the layer directly below it. For example, the Controller does not call the Repository directly; it calls the Service. This rule is the core of the layered structure.',
+        why: 'When the rule is followed, you can predict the scope of any change to any file. Once calls start skipping layers, every file becomes tangled with the others.',
+        where: 'The folder structure shows these relationships directly: `controller`, `service`, `repository`, `entity`, `dto`.',
+        missing: 'Skipping a layer (for example, a Controller calling a Repository directly) leaves out business rules and makes testing hard.',
+        connects: 'The Controller connects to the Service, the Service connects to Repositories and Entities, and the Repository connects to the database. DTOs travel between the Controller and the Service.',
+        usage: 'When first reading a project, start at `controller` and follow `service` and then `repository`. That lets you trace a feature from start to finish.',
       },
       {
-        keyTerms: [['계층 구조 (layered architecture)', '역할별로 층을 나누고 위 층이 아래 층만 부르는 구조.']],
+        keyTerms: [['layered architecture', 'A design that splits roles into layers, where each upper layer calls only the layer below it.']],
         example: tree(`
-브라우저 → Controller → Service → Repository → DB
+Browser → Controller → Service → Repository → DB
                 ↑          ↓
                DTO      Entity
 `),
-        practice: '프로젝트에서 기능 하나(예: 코스 목록)를 골라 Controller, Service, Repository, Entity, DTO 파일을 찾아 화살표로 연결해 그리세요.',
+        practice: 'Pick a feature (for example, the course list), find its Controller, Service, Repository, Entity, and DTO files, and connect them with arrows.',
         check: [
-          { q: 'Controller가 Repository를 직접 불러도 되나요?', a: '가능은 하지만 권장되지 않습니다. Service를 거쳐야 업무 규칙이 빠지지 않습니다.' },
-          { q: '요청이 응답으로 나가기까지 거치는 순서는?', a: 'Controller → Service → Repository → Entity로 내려갔다가, DTO가 되어 Controller를 거쳐 응답으로 나갑니다.' },
+          { q: 'Can a Controller call a Repository directly?', a: 'It can, but it is not recommended. Going through the Service keeps business rules from being skipped.' },
+          { q: 'What is the order a request follows on its way to becoming a response?', a: 'It goes down Controller → Service → Repository → Entity, then becomes a DTO and goes back up through the Controller as the response.' },
         ],
       },
     ),
   ],
   {
-    title: '백엔드 흐름 지도',
-    description: '기능 하나를 골라 Controller부터 DB까지 추적해 지도를 그립니다.',
-    deliverables: ['선택한 기능의 파일 5개 (Controller, Service, Repository, Entity, DTO)', '요청 → 응답 흐름 화살표 그림', '계층을 건너뛴 곳이 있다면 표시'],
+    title: 'Backend flow map',
+    description: 'Pick one feature and trace it from the Controller down to the database, then draw a map.',
+    deliverables: ['Five files for the chosen feature (Controller, Service, Repository, Entity, DTO)', 'A diagram with arrows for the request → response flow', 'Any place where a layer is skipped, marked'],
   },
 );
 
 export const MODULE_06 = moduleOf(
   'frontend',
-  'Frontend Architecture',
-  '프론트엔드 구조',
+  'Module 06: Frontend Architecture',
   'Intermediate',
-  '브라우저 화면이 어떻게 만들어지는지 HTML, 템플릿, 정적 리소스, CSS, JavaScript, 컴포넌트를 나눠 보고, 프론트엔드와 백엔드가 어떻게 연결되는지 배웁니다.',
-  ['HTML 화면이 어떤 파일들로 이루어지는지 설명할 수 있다.', 'Template과 Static Resource를 구분할 수 있다.', '브라우저와 백엔드가 주고받는 경로를 설명할 수 있다.'],
+  'How a browser screen is built: HTML, templates, static resources, CSS, JavaScript, and components, with a look at how the frontend and backend connect.',
+  ['Explain which files make up an HTML screen.', 'Tell apart Templates and Static Resources.', 'Describe the path that browser and backend exchange requests along.'],
   [
     lesson(
       'frontend-html',
       'HTML',
-      'HTML 문서',
       12,
-      'HTML은 화면의 뼈대입니다. 제목, 본문, 입력칸, 버튼이 어떤 순서로 있는지 적고, 다른 파일을 연결하는 시작점입니다.',
+      'HTML is the skeleton of a screen. It says what comes in what order: titles, body text, input boxes, and buttons. It is also the starting point that connects to other files.',
       {
-        what: '`<!doctype html>`로 시작하는 문서입니다. `<head>`에는 제목과 불러올 CSS·JS를, `<body>`에는 실제 화면 내용을 적습니다.',
-        why: '브라우저는 HTML을 먼저 받아야 화면을 만들 수 있습니다. 모든 것의 출발점입니다.',
-        where: '정적이면 `static`, 서버가 채우면 `templates`에 둡니다. 이 course 앱은 `public/index.html`에 둡니다.',
-        missing: 'HTML이 없으면 화면 자체가 없습니다. `<script>`나 `<link>`의 경로가 틀리면 기능과 스타일만 빠집니다.',
-        connects: 'HTML은 CSS(`<link>`), JavaScript(`<script>`), 이미지(`<img>`)를 불러오고, 서버 API 주소는 JavaScript가 호출합니다.',
-        usage: '앱의 뼈대가 되는 `index.html`에는 모든 화면이 들어갈 자리(`<main id="view">`)가 있습니다.',
+        what: 'It is a document that starts with `<!doctype html>`. The `<head>` holds the title and the CSS and JavaScript to load, and the `<body>` holds the actual screen content.',
+        why: 'The browser must receive HTML first before it can draw anything. Everything starts here.',
+        where: 'Static screens go in `static`, and screens the server fills go in `templates`. This course app keeps it in `public/index.html`.',
+        missing: 'Without HTML there is no screen at all. A wrong path in `<script>` or `<link>` removes only the feature or the styling.',
+        connects: 'HTML loads CSS (`<link>`), JavaScript (`<script>`), and images (`<img>`), and JavaScript calls the server APIs.',
+        usage: 'The main `index.html` holds the placeholder (`<main id="view">`) where every screen is inserted.',
       },
       {
-        keyTerms: [['DOM', '브라우저가 HTML을 읽어 만든 객체 트리. JavaScript가 이것을 바꿉니다.']],
+        keyTerms: [['DOM', 'The tree of objects the browser builds from HTML. JavaScript changes it.']],
         example: tree(`
 <head>
   <link rel="stylesheet" href="/css/style.css">
@@ -246,192 +237,186 @@ export const MODULE_06 = moduleOf(
 </head>
 <body><main id="view"></main></body>
 `),
-        practice: 'HTML 파일의 `<head>`에서 불러오는 파일 목록을 적고, 각 파일이 어느 폴더에 있는지 확인하세요.',
+        practice: 'In the `<head>` of an HTML file, list the files it loads, and check which folder each one is in.',
         check: [
-          { q: 'HTML 문서의 `<head>`와 `<body>`는 무엇이 다른가요?', a: '`<head>`는 설정과 불러올 파일, `<body>`는 화면에 보이는 내용입니다.' },
-          { q: 'HTML이 다른 파일을 찾는 방법은?', a: '`href`, `src` 속성에 적힌 경로를 브라우저가 따라갑니다.' },
+          { q: 'What is the difference between `<head>` and `<body>`?', a: '`<head>` holds settings and the files to load; `<body>` holds what is visible on the screen.' },
+          { q: 'How does HTML find other files?', a: 'The browser follows the paths written in the `href` and `src` attributes.' },
         ],
       },
     ),
     lesson(
       'frontend-templates',
       'Templates',
-      '템플릿 (서버 렌더링)',
       12,
-      '템플릿은 서버가 데이터를 넣어 완성하는 HTML 틀입니다. 브라우저는 완성된 HTML만 받습니다.',
+      'A template is an HTML skeleton that the server completes by inserting data. The browser receives only the finished HTML.',
       {
-        what: 'Thymeleaf 같은 템플릿 엔진이 `${...}` 자리에 값을 넣습니다. 결과는 평범한 HTML입니다.',
-        why: '사용자마다 다른 내용(이름, 목록)을 보여 주려면 서버가 HTML을 만들어야 합니다.',
-        where: 'Spring Boot는 `src/main/resources/templates`에서 찾습니다.',
-        missing: '템플릿이 없거나 이름이 틀리면 "template not found" 오류가 나고 화면이 뜨지 않습니다.',
-        connects: 'Controller가 템플릿 이름과 데이터를 함께 반환하면, 템플릿 엔진이 둘을 합칩니다.',
-        usage: '서버가 목록을 렌더링하는 관리자 화면이나 메일 본문이 템플릿으로 만들어집니다.',
+        what: 'A template engine such as Thymeleaf inserts values at `${...}` positions. The result is plain HTML.',
+        why: 'To show content that differs per user (names, lists), the server has to build the HTML.',
+        where: 'Spring Boot looks for them in `src/main/resources/templates`.',
+        missing: 'If the template is missing or its name is wrong, you get a "template not found" error and no screen appears.',
+        connects: 'When a Controller returns a template name together with data, the template engine combines the two.',
+        usage: 'Admin pages that render lists from the server, and email bodies, are built with templates.',
       },
       {
-        keyTerms: [['렌더링 (rendering)', '데이터와 틀을 합쳐 최종 화면을 만드는 과정.']],
+        keyTerms: [['rendering', 'The process of combining a template with data to produce the final screen.']],
         example: tree(`
 templates/index.html
-<h1 th:text="\${title}">제목</h1>
+<h1 th:text="\${title}">Title</h1>
 `),
-        practice: '템플릿의 빈칸 하나를 찾고, 그 값이 Controller의 어느 줄에서 넘어오는지 찾아 보세요.',
+        practice: 'Find a blank in a template, and trace which line of the Controller supplies its value.',
         check: [
-          { q: '템플릿과 정적 HTML의 차이는?', a: '템플릿은 서버가 데이터를 넣어 완성하고, 정적 HTML은 그대로 보냅니다.' },
-          { q: '템플릿 파일은 어느 폴더에 있나요?', a: '`src/main/resources/templates`입니다.' },
+          { q: 'What is the difference between a template and static HTML?', a: 'A template is completed with data by the server; static HTML is sent unchanged.' },
+          { q: 'Where are template files kept?', a: '`src/main/resources/templates`.' },
         ],
       },
     ),
     lesson(
       'frontend-static-resources',
       'Static Resources',
-      '정적 리소스 (프론트엔드 관점)',
       12,
-      '정적 리소스는 CSS, JavaScript, 이미지처럼 서버가 가공하지 않고 전달하는 파일입니다. 브라우저가 URL로 직접 요청합니다.',
+      'Static resources are files such as CSS, JavaScript, and images that the server delivers without processing. The browser requests them directly by URL.',
       {
-        what: '`/css/app.css`, `/js/app.js`, `/img/logo.png` 같은 주소가 정적 리소스입니다. 파일 경로와 URL이 같은 규칙으로 대응합니다.',
-        why: '변하지 않는 파일을 매번 서버 코드로 만들 필요가 없습니다. 브라우저 캐시에 저장해 두고 재사용할 수 있어 빠릅니다.',
-        where: 'Spring Boot는 `static`, 이 course 앱은 `public` 폴더에 둡니다.',
-        missing: '정적 리소스가 없으면 스타일과 스크립트가 없어 화면이 깨집니다.',
-        connects: 'HTML의 `<link>`와 `<script>`가 이 URL을 요청하고, 서버는 같은 경로의 파일을 찾아 보냅니다.',
-        usage: 'Service Worker(`sw.js`)와 `manifest.webmanifest`도 정적 리소스이며 앱을 설치 가능하게 합니다.',
+        what: 'Addresses such as `/css/app.css`, `/js/app.js`, and `/img/logo.png` are static resources. The file path and the URL correspond by the same rule.',
+        why: 'Files that do not change do not need to be generated by server code every time. The browser can keep them in its cache and reuse them, which is fast.',
+        where: 'Spring Boot uses `static`; this course app uses the `public` folder.',
+        missing: 'Without static resources, styles and scripts are missing, and the screen breaks.',
+        connects: 'The HTML `<link>` and `<script>` request these URLs, and the server finds the file at the matching path and sends it.',
+        usage: 'The service worker (`sw.js`) and `manifest.webmanifest` are also static resources, and they make the app installable.',
       },
       {
-        keyTerms: [['URL 매핑', '요청 주소를 폴더의 파일 경로에 대응시키는 규칙.']],
+        keyTerms: [['URL mapping', 'The rule that matches a request address to a file path in a folder.']],
         example: tree(`
-static/css/app.css   →  요청: /css/app.css
-static/js/app.js     →  요청: /js/app.js
+static/css/app.css   →  request: /css/app.css
+static/js/app.js     →  request: /js/app.js
 `),
-        practice: '브라우저 개발자 도구의 Network 탭에서 페이지 하나를 열고, 정적 리소스 요청 3개의 주소와 대응하는 파일 경로를 적어 보세요.',
+        practice: 'Open a page in the browser developer tools\' Network tab. For three static resource requests, write down the address and the file path it maps to.',
         check: [
-          { q: '정적 리소스의 URL과 파일 경로는 어떻게 대응하나요?', a: '폴더 기준으로 같은 경로를 가리킵니다. 예: `/css/app.css`는 `static/css/app.css`입니다.' },
-          { q: '정적 리소스를 바꾸면 서버를 다시 빌드해야 하나요?', a: '보통 파일을 바꾸고 다시 배포하면 됩니다. 브라우저 캐시 때문에 새로고침이 필요할 수 있습니다.' },
+          { q: 'How do a static resource\'s URL and its file path correspond?', a: 'They point to the same location in the folder structure. For example, `/css/app.css` is `static/css/app.css`.' },
+          { q: 'Do I have to rebuild the server when I change a static resource?', a: 'Usually no. You change the file and redeploy it; the browser cache may require a refresh.' },
         ],
       },
     ),
     lesson(
       'frontend-css',
       'CSS',
-      'CSS 스타일',
       12,
-      'CSS는 HTML 요소의 색, 간격, 크기, 반응형 배치를 정합니다. 구조와 모양을 나누는 가장 중요한 파일입니다.',
+      'CSS sets the colour, spacing, size, and responsive layout of HTML elements. It is the most important file for separating structure from look.',
       {
-        what: '선택자(예: `.card`)로 요소를 고르고, 속성(예: `padding`)으로 모양을 정합니다. 미디어 쿼리(`@media`)로 화면 폭에 따라 모양을 바꿉니다.',
-        why: '디자인을 HTML과 분리하면, 같은 화면 구조에 다른 디자인을 입히거나 모바일 레이아웃만 따로 고칠 수 있습니다.',
-        where: '`static/css`(또는 `public/css`)에 두고, HTML의 `<link>`로 불러옵니다.',
-        missing: 'CSS가 없으면 화면이 브라우저 기본 모양으로 보여 글자가 겹치거나 버튼이 작게 보입니다.',
-        connects: '`class` 속성이 CSS의 선택자와 연결됩니다. 이름을 바꾸면 스타일이 적용되지 않습니다.',
-        usage: '모바일에서 메뉴를 아래로 옮기는 스타일이 `@media (max-width: 820px)` 안에 들어갑니다.',
+        what: 'Selectors (such as `.card`) pick elements, and properties (such as `padding`) set their look. Media queries (`@media`) change the look depending on the screen width.',
+        why: 'Separating design from HTML means you can apply a different design to the same screen structure, or change only the mobile layout.',
+        where: 'Keep it in `static/css` (or `public/css`) and load it with `<link>` in HTML.',
+        missing: 'Without CSS, the screen shows with the browser\'s default look, and text overlaps or buttons look too small.',
+        connects: 'The `class` attribute connects to CSS selectors. Renaming a class stops its styles from applying.',
+        usage: 'The style that moves the menu below the content on mobile sits inside `@media (max-width: 820px)`.',
       },
       {
-        keyTerms: [['미디어 쿼리 (media query)', '화면 폭 같은 조건에 따라 CSS를 바꾸는 규칙.']],
+        keyTerms: [['media query', 'A rule that changes CSS depending on conditions such as screen width.']],
         example: tree(`
 .card { padding: 16px; }
 @media (max-width: 820px) {
   .card { padding: 12px; }
 }
 `),
-        practice: '`@media` 규칙을 찾아 어떤 화면 폭에서 바뀌는지 적고, 그 폭을 휴대폰 크기와 비교해 보세요.',
+        practice: 'Find a `@media` rule, write down the screen width at which it changes, and compare that width with a phone\'s screen size.',
         check: [
-          { q: 'CSS 선택자 `.card`는 HTML의 무엇과 연결되나요?', a: '`class="card"`가 붙은 요소와 연결됩니다.' },
-          { q: '미디어 쿼리는 무엇을 하나요?', a: '화면 폭 같은 조건에 따라 다른 스타일을 적용합니다.' },
+          { q: 'What does the CSS selector `.card` connect to in HTML?', a: 'Elements with `class="card"`.' },
+          { q: 'What does a media query do?', a: 'It applies different styles depending on conditions such as the screen width.' },
         ],
       },
     ),
     lesson(
       'frontend-javascript',
       'JavaScript',
-      'JavaScript 동작',
       15,
-      'JavaScript는 화면을 바꾸고 사용자의 동작에 반응하고, 서버 API를 불러 데이터를 가져오는 코드입니다.',
+      'JavaScript changes the screen, responds to user actions, and fetches data from server APIs.',
       {
-        what: '버튼 클릭을 감지하고(`addEventListener`), DOM을 바꾸고, `fetch`로 서버에 요청합니다. 이 course 앱의 `public/js/` 파일들이 모두 이 일을 합니다.',
-        why: 'HTML과 CSS만으로는 데이터가 바뀌는 화면을 만들 수 없습니다. 동작은 JavaScript가 맡습니다.',
-        where: '`static/js`나 `public/js`에 두고, HTML의 `<script>`로 불러옵니다. 모듈로 나누면 `import`로 필요한 것만 가져옵니다.',
-        missing: '없으면 버튼이 반응하지 않고, 데이터가 서버로 전송되지 않습니다.',
-        connects: 'JavaScript는 HTML의 요소를 찾아(`document.getElementById`) 바꾸고, `fetch(\'/api/...\')`로 백엔드 Controller를 호출합니다.',
-        usage: '로그인 후 대시보드 데이터를 가져와 화면에 그리는 일이 JavaScript의 가장 흔한 역할입니다.',
+        what: 'It detects button clicks (`addEventListener`), changes the DOM, and sends requests with `fetch`. All the `public/js/` files in this course app do this work.',
+        why: 'HTML and CSS alone cannot build a screen whose data changes. Behaviour is handled by JavaScript.',
+        where: 'Keep it in `static/js` or `public/js`, and load it with `<script>` in HTML. Splitting into modules lets you import only what you need.',
+        missing: 'Without it, buttons do not respond and data is not sent to the server.',
+        connects: 'JavaScript finds HTML elements (`document.getElementById`) and changes them, and calls backend Controllers through `fetch(\'/api/...\')`.',
+        usage: 'The most common job of JavaScript is fetching dashboard data after sign-in and drawing it on the screen.',
       },
       {
-        keyTerms: [['이벤트 (event)', '클릭, 입력, 로드처럼 브라우저에서 일어나는 사건.']],
+        keyTerms: [['event', 'Something that happens in the browser, such as a click, input, or load.']],
         example: tree(`
 button.addEventListener('click', async () => {
-  const data = await fetch(\'/api/courses\').then((r) => r.json());
+  const data = await fetch('/api/courses').then((r) => r.json());
   render(data);
 });
 `),
-        practice: 'JavaScript 파일에서 `fetch`를 찾아 어떤 API 주소를 부르는지 적고, 그 주소에 해당하는 Controller 메서드를 찾아 보세요.',
+        practice: 'In a JavaScript file, find `fetch`, write down which API address it calls, and find the Controller method that handles that address.',
         check: [
-          { q: 'JavaScript가 서버 데이터를 가져올 때 쓰는 함수는?', a: '`fetch`입니다.' },
-          { q: 'JavaScript와 Java 백엔드는 어떻게 연결되나요?', a: '브라우저가 HTTP 요청(fetch)을 보내고, Java Controller가 응답(JSON)을 돌려줍니다.' },
+          { q: 'Which function does JavaScript use to fetch server data?', a: '`fetch`.' },
+          { q: 'How do JavaScript and the Java backend connect?', a: 'The browser sends an HTTP request (fetch), and the Java Controller returns a response (JSON).' },
         ],
       },
     ),
     lesson(
       'frontend-components',
       'Components',
-      '컴포넌트 (화면 조각)',
       12,
-      '컴포넌트는 화면을 재사용 가능한 조각으로 나눈 것입니다. 카드 하나, 헤더 하나, 입력 폼 하나가 각각 컴포넌트가 됩니다.',
+      'A component is a screen piece split into a reusable unit. A card, a header, or an input form each becomes a component.',
       {
-        what: 'React나 Vue에서는 함수나 파일 하나가 컴포넌트입니다. 이 course 앱처럼 바닐라 JavaScript에서는 `components.js`에 만든 `pageHeader`, `emptyState` 같은 함수가 컴포넌트 역할을 합니다.',
-        why: '같은 모양을 여러 번 쓰면 코드가 중복되고, 고칠 때 여러 곳을 바꿔야 합니다. 조각으로 만들면 한 곳만 고치면 됩니다.',
-        where: '`src/components`(React), `public/js/components.js`(바닐라)처럼 공용 폴더에 둡니다.',
-        missing: '컴포넌트가 없으면 같은 카드 모양을 화면마다 복사해 씁니다. 디자인을 바꿀 때 빠뜨리기 쉽습니다.',
-        connects: '화면 파일(view)이 컴포넌트를 불러 조립합니다. 컴포넌트는 데이터를 받아 모양만 그립니다.',
-        usage: '버튼, 카드, 빈 상태 메시지처럼 여러 화면에 나오는 요소가 컴포넌트로 만들어집니다.',
+        what: 'In React or Vue, a function or a file is a component. In plain JavaScript, like this course app, functions such as `pageHeader` and `emptyState` in `components.js` play the role of components.',
+        why: 'When the same shape is used many times, the code is duplicated and each change must be made in several places. Making a piece into a component means changing only one place.',
+        where: 'Keep them in a shared folder, such as `src/components` (React) or `public/js/components.js` (plain JavaScript).',
+        missing: 'Without components, the same card shape is copied into each screen, and design changes are easy to miss.',
+        connects: 'View files import components and assemble them. A component receives data and only draws the shape.',
+        usage: 'Elements that appear on many screens, such as buttons, cards, and empty-state messages, are made into components.',
       },
       {
         keyTerms: [
-          ['컴포넌트 (component)', '재사용하는 화면 조각.'],
-          ['props', '컴포넌트에 넘기는 입력값 (React 용어). 바닐라에서는 함수 인자가 같은 역할입니다.'],
+          ['component', 'A reusable piece of the screen.'],
+          ['props', 'The input values passed into a component (a React term). In plain JavaScript, function arguments play the same role.'],
         ],
         example: tree(`
 public/js/components.js
-export function emptyState(title, body) { ... }   ← 여러 화면에서 재사용
+export function emptyState(title, body) { ... }   ← reused on several screens
 `),
-        practice: '화면 파일 하나를 열어 두 번 이상 나오는 모양을 찾고, 그것을 컴포넌트 함수로 옮긴다면 어떤 인자를 받을지 적어 보세요.',
+        practice: 'Open a screen file and find a shape that appears twice or more. If you moved it into a component function, write down which arguments it would take.',
         check: [
-          { q: '컴포넌트의 장점은?', a: '같은 모양을 재사용해 중복을 줄이고, 고칠 때 한 곳만 바꾸면 됩니다.' },
-          { q: '컴포넌트는 서버 데이터를 직접 가져와야 하나요?', a: '보통 화면(view)이 데이터를 가져와 컴포넌트에 넘기고, 컴포넌트는 그리기만 합니다.' },
+          { q: 'What is the benefit of components?', a: 'They reduce duplication by reusing a shape, and a change needs to be made in only one place.' },
+          { q: 'Should a component fetch server data itself?', a: 'Usually the view fetches the data and passes it to the component, which only draws it.' },
         ],
       },
     ),
     lesson(
       'frontend-backend-connection',
       'Frontend and Backend Connections',
-      '프론트엔드와 백엔드의 연결',
       20,
-      '프론트엔드(브라우저의 HTML·CSS·JS)와 백엔드(서버의 Java 코드)는 HTTP 요청과 응답으로 연결됩니다. 브라우저가 요청하고, 서버가 응답합니다.',
+      'The frontend (HTML, CSS, and JavaScript in the browser) and the backend (Java code on the server) connect through HTTP requests and responses. The browser requests, the server responds.',
       {
-        what: '브라우저의 JavaScript가 `fetch(\'/api/courses\')`로 요청을 보냅니다. 서버 Controller가 받아 데이터를 JSON으로 응답하고, JavaScript가 그 데이터로 화면을 그립니다.',
-        why: '화면과 데이터 처리를 분리하면, 같은 API를 웹 화면과 모바일 앱이 함께 쓸 수 있습니다.',
-        where: 'API 주소는 Controller의 `@RequestMapping`과 JavaScript의 `fetch` 주소가 같아야 연결됩니다.',
-        missing: '주소가 틀리면 404, 인증이 없으면 401이 나옵니다. JSON 형식이 맞지 않으면 화면이 빈칸으로 보입니다.',
-        connects: '흐름은 `브라우저 HTML → JavaScript → fetch → Controller → Service → Repository → DB`로 가고, 응답은 같은 길을 거꾸로 옵니다.',
-        usage: '이 course 앱에서 코스 목록을 열면 `/api/courses`가 호출되고, 그 결과로 화면이 그려집니다. 7번 모듈에서 직접 추적합니다.',
+        what: 'The browser\'s JavaScript sends `fetch(\'/api/courses\')`. The server Controller receives it, returns the data as JSON, and JavaScript uses that data to draw the screen.',
+        why: 'Separating the screen from data processing lets a web screen and a mobile app share the same API.',
+        where: 'The API address must match in two places: the Controller\'s `@RequestMapping` and the JavaScript `fetch` address.',
+        missing: 'A wrong address returns 404, and missing authentication returns 401. If the JSON shape does not match, the screen shows blank fields.',
+        connects: 'The path runs `browser HTML → JavaScript → fetch → Controller → Service → Repository → DB`, and the response returns along the same path in reverse.',
+        usage: 'In this course app, opening the course list calls `/api/courses`, and the screen is drawn from the result. You will trace this yourself in Module 7.',
       },
       {
         keyTerms: [
-          ['API', '프로그램끼리 정해진 주소와 형식으로 데이터를 주고받는 약속.'],
-          ['JSON 응답', '서버가 보내는 데이터 형식. 보통 객체와 목록.'],
+          ['API', 'An agreement between programs to exchange data at fixed addresses and in a fixed format.'],
+          ['JSON response', 'The data format the server sends, usually objects and lists.'],
         ],
         example: tree(`
-브라우저 (JS)  ── GET /api/courses ──▶  Controller
+Browser (JS)  ── GET /api/courses ──▶  Controller
                                           │
                                        Service → Repository → DB
                                           │
-브라우저 (JS)  ◀──── JSON 응답 ─────────── DTO
+Browser (JS)  ◀──── JSON response ─────── DTO
 `),
-        practice: '브라우저 개발자 도구에서 페이지 하나를 열고 `/api`로 시작하는 요청을 찾아, 같은 주소를 가진 Controller 메서드를 프로젝트에서 찾아 보세요.',
+        practice: 'In the browser developer tools, open a page, find a request starting with `/api`, and find the Controller method in the project that has the same address.',
         check: [
-          { q: '프론트엔드와 백엔드는 무엇으로 연결되나요?', a: 'HTTP 요청과 응답입니다. 보통 JSON 형식의 데이터를 주고받습니다.' },
-          { q: '화면은 정상인데 데이터가 비어 보인다면 가장 먼저 볼 것은?', a: '브라우저의 Network 탭에서 API 응답 내용과 상태 코드(200, 401, 404)를 확인합니다.' },
+          { q: 'What connects the frontend and the backend?', a: 'HTTP requests and responses, usually exchanging data in JSON.' },
+          { q: 'If the page looks fine but the data is empty, what should you check first?', a: 'The API response and its status code (200, 401, or 404) in the browser\'s Network tab.' },
         ],
       },
     ),
   ],
   {
-    title: '화면과 API 연결 지도',
-    description: '화면 하나를 골라 HTML에서 DB까지의 경로를 그립니다.',
-    deliverables: ['화면 하나의 HTML, JavaScript, CSS 파일 목록', '그 화면이 부르는 API 주소와 Controller 메서드', '요청과 응답 흐름 그림'],
+    title: 'Screen-to-API map',
+    description: 'Pick one screen and draw the path from its HTML to the database.',
+    deliverables: ['The HTML, JavaScript, and CSS files of one screen', 'The API address that screen calls, and the Controller method that handles it', 'A diagram of the request and response flow'],
   },
 );

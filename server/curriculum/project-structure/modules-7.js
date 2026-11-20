@@ -5,207 +5,199 @@ const tree = (text) => '```\n' + text.trim() + '\n```';
 
 export const MODULE_07 = moduleOf(
   'reading-lab',
-  'Project Reading Lab',
-  '프로젝트 읽기 실습',
+  'Module 07: Project Reading Lab',
   'Intermediate',
-  '실제 GitHub 저장소 하나를 골라 처음부터 끝까지 읽습니다. 폴더의 역할 찾기, 파일 살펴보기, 의존 관계 추적, 요청 흐름 따라가기, 구조 지도 그리기까지 여섯 단계를 차례로 합니다.',
-  ['낯선 저장소의 폴더 역할을 설명할 수 있다.', '파일 하나가 무엇에 의존하는지 추적할 수 있다.', '요청 하나를 브라우저에서 백엔드까지 따라갈 수 있다.', '프로젝트 구조 지도를 그릴 수 있다.'],
+  'Pick one real GitHub repository and read it from start to finish. Six steps in order: finding folder roles, inspecting files, tracing dependencies, following a request, and drawing a structure map.',
+  ['Explain the role of each folder in an unfamiliar repository.', 'Trace what one file depends on.', 'Follow one request from the browser to the backend and back.', 'Draw a project structure map.'],
   [
     lesson(
       'lab-explore-repo',
       'Explore a real GitHub repository',
-      '실제 GitHub 저장소 둘러보기',
       20,
-      '실습의 첫 단계는 읽을 저장소를 고르고 내려받아, README와 최상위 구조를 훑어보는 것입니다. 코드를 읽기 전에 "무엇을 위한 프로젝트인지"부터 파악합니다.',
+      'The first step is to choose a repository to read, download it, and skim the README and the top-level structure. Before reading code, find out what the project is for.',
       {
-        what: 'GitHub에서 저장소 페이지를 열고, README와 최상위 폴더 목록을 봅니다. 그다음 `git clone`으로 내려받으면 같은 구조가 내 PC에 생깁니다.',
-        why: '큰 프로젝트를 처음부터 한 파일씩 읽으면 길을 잃습니다. 목적과 최상위 구조를 먼저 알면 어디를 읽을지 정할 수 있습니다.',
-        where: '실습 대상은 README가 있고, 빌드 설정 파일(`build.gradle` 또는 `package.json`)이 루트에 있는 작은 프로젝트가 좋습니다.',
-        missing: 'README나 설정 파일이 없으면 프로젝트를 실행하는 방법을 알기 어렵습니다. 이때는 `src`의 진입점(시작 파일)부터 찾습니다.',
-        connects: 'README는 실행 명령을 알려 주고, 설정 파일은 어떤 폴더를 소스로 쓰는지 알려 주며, 두 가지가 함께 프로젝트의 지도가 됩니다.',
-        usage: '새 회사에 들어가 기존 저장소를 처음 받을 때 하는 첫 작업이 정확히 이것입니다.',
+        what: 'Open the repository page on GitHub and look at the README and the list of top-level folders. Then `git clone` it to download the same structure to your computer.',
+        why: 'Reading a large project file by file from the start gets you lost. Knowing the purpose and top-level structure first tells you where to read.',
+        where: 'Choose a small project with a README and a build configuration file (`build.gradle` or `package.json`) in the root.',
+        missing: 'Without a README or configuration file, it is harder to know how to run the project. In that case, start from the entry point (the file where the program begins), such as the class marked `@SpringBootApplication`.',
+        connects: 'The README tells you the run commands, and the configuration file tells you which folders are source. Together they form the map of the project.',
+        usage: 'When you join a new company and receive an existing repository for the first time, this is exactly the first task you do.',
       },
       {
         keyTerms: [
-          ['git clone', '원격 저장소를 내 PC에 복사하는 명령.'],
-          ['진입점 (entry point)', '프로그램이 시작되는 파일. Spring에서는 `@SpringBootApplication`이 붙은 클래스입니다.'],
+          ['git clone', 'The command that copies a remote repository to your computer.'],
+          ['entry point', 'The file where a program starts. In Spring, it is the class marked `@SpringBootApplication`.'],
         ],
         example: tree(`
 $ git clone https://github.com/<owner>/<repo>.git
 $ cd <repo>
-$ ls                 ← 최상위 구조 확인
+$ ls                 ← check the top-level structure
 README.md  build.gradle  src/
 `),
-        practice: '작은 공개 Spring Boot 저장소 하나를 clone하고, README에 적힌 실행 명령과 최상위 폴더 목록을 3줄로 요약하세요.',
+        practice: 'Clone a small public Spring Boot repository. Summarize the run commands in its README and the top-level folder list in three lines.',
         check: [
-          { q: '프로젝트를 읽기 전에 가장 먼저 볼 두 가지는?', a: 'README(목적과 실행 방법)와 최상위 구조(빌드 설정, src 등)입니다.' },
-          { q: 'README가 없으면 무엇부터 찾나요?', a: '빌드 설정 파일과 진입점 클래스(`@SpringBootApplication`)를 찾습니다.' },
+          { q: 'What two things should you look at before reading a project?', a: 'The README (purpose and how to run it) and the top-level structure (build configuration, src, and so on).' },
+          { q: 'If there is no README, what should you look for first?', a: 'The build configuration file and the entry point class (`@SpringBootApplication`).' },
         ],
       },
     ),
     lesson(
       'lab-folder-responsibilities',
       'Identify folder responsibilities',
-      '폴더의 역할 파악하기',
       20,
-      '최상위부터 한 단계씩 폴더를 열어 "이 폴더는 소스인가, 리소스인가, 결과물인가"를 표로 정리합니다. 이름과 위치를 근거로 역할을 추측하고, 확인합니다.',
+      'Open the folders one level at a time from the top, and build a table saying "is this source, resources, or output?" Guess roles from names and locations, then confirm them.',
       {
-        what: '각 폴더에 대해 세 가지를 적습니다: 역할(소스, 리소스, 테스트, 결과물), 고쳐도 되는가(Yes/No), 근거(이름, 위치, 설정 파일).',
-        why: '폴더 역할을 알면 어디를 고치고 어디를 건드리면 안 되는지 알 수 있습니다. `build`는 고치면 안 되고, `src`는 고쳐야 합니다.',
-        where: '최상위와 `src` 아래 두 단계를 먼저 봅니다. 더 깊은 곳은 필요할 때만 엽니다.',
-        missing: '역할을 추측하지 않고 확인하지 않으면, 결과물 폴더를 고쳐 다음 빌드에서 변경이 사라지는 실수를 합니다.',
-        connects: '설정 파일(`build.gradle`)이 어떤 폴더를 소스와 결과물로 쓰는지 알려 줍니다. 이 연결을 확인하면 추측이 확인으로 바뀝니다.',
-        usage: '코드 리뷰에서 "이 파일은 생성된 파일이니 직접 고치지 마세요"라고 말하는 판단이 이 과정에서 나옵니다.',
+        what: 'For each folder, write three things: its role (source, resources, test, output), whether you may edit it (Yes/No), and the evidence (name, location, configuration files).',
+        why: 'Knowing folder roles tells you what to change and what must not be touched. You must not change `build`, but `src` is where edits go.',
+        where: 'Look at the top level and two levels inside `src` first. Open deeper levels only when you need them.',
+        missing: 'If you guess roles without checking, you may edit an output folder and see your changes vanish on the next build.',
+        connects: 'The configuration file (`build.gradle`) says which folders are source and output. Checking this connection turns the guess into a confirmed fact.',
+        usage: 'In a code review, the comment "this file is generated, please do not edit it directly" comes from this step.',
       },
       {
-        keyTerms: [['역할 표 (responsibility table)', '폴더와 역할, 수정 가능 여부를 한눈에 적은 표.']],
+        keyTerms: [['responsibility table', 'A table listing each folder, its role, and whether it can be edited.']],
         example: tree(`
-폴더          역할           고쳐도 되나?   근거
-src/main      소스+리소스    Yes           소스 위치 (build.gradle)
-build/        결과물         No            빌드가 만듦
-.gradle/      빌드 캐시      No            도구가 관리
+Folder        Role           Editable?    Evidence
+src/main      source + res   Yes          the source location (build.gradle)
+build/        output         No           produced by the build
+.gradle/      build cache    No           managed by the tool
 `),
-        practice: '실습 저장소의 폴더 역할 표를 만드세요. 최소 6개 폴더를 넣고, 각 행마다 근거를 한 가지씩 적으세요.',
+        practice: 'Make a folder-role table for the lab repository. Include at least six folders, and give one piece of evidence for each row.',
         check: [
-          { q: '`build` 폴더를 직접 고치면 안 되는 이유는?', a: '빌드할 때마다 `src`로부터 다시 만들어져서 직접 고친 내용이 사라지기 때문입니다.' },
-          { q: '폴더 역할을 어떻게 확인하나요?', a: '폴더 이름, 위치, 그리고 설정 파일이 그 폴더를 어떻게 쓰는지 확인합니다.' },
+          { q: 'Why must the `build` folder not be edited directly?', a: 'It is rebuilt from `src` every time you build, so direct edits disappear.' },
+          { q: 'How do you confirm a folder\'s role?', a: 'Check its name, its location, and how the configuration files use it.' },
         ],
       },
     ),
     lesson(
       'lab-inspect-files',
       'Inspect individual files',
-      '개별 파일 살펴보기',
       25,
-      '역할을 알게 된 폴더에서 파일 하나를 골라 구조를 읽습니다. 파일의 목적, 주요 선언(클래스, 함수, 설정 키), 그리고 다른 파일을 가리키는 줄을 찾습니다.',
+      'Pick one file in a folder whose role you now know, and read its structure. Find its purpose, its main declarations (classes, functions, configuration keys), and the lines that point to other files.',
       {
-        what: '파일을 열면 위에서부터 `package`, `import`, 어노테이션, 클래스 선언 순서로 읽습니다. 설정 파일이라면 키 목록을 봅니다.',
-        why: '파일 하나를 제대로 읽으면, 그 파일이 무엇을 책임지고 무엇에 기대는지 알 수 있습니다. 이것이 모든 추적의 출발점입니다.',
-        where: '파일의 위치(패키지 경로, 폴더)가 역할을 말해 줍니다. 예: `controller` 폴더의 파일은 요청을 받는 역할입니다.',
-        missing: '내용을 읽지 않고 이름만으로 판단하면, 이름과 실제 역할이 다른 파일(예: "Util"이라는 이름이지만 업무 로직이 든 파일)을 놓칩니다.',
-        connects: '`import`는 다른 파일을 가리키고, 어노테이션(`@Service`, `@Value`)은 Spring이 다른 구성 요소와 연결하는 표시입니다.',
-        usage: '버그를 고칠 때 가장 먼저 하는 일이 문제가 난 파일을 열어 `import`와 호출 관계를 확인하는 것입니다.',
+        what: 'Read a file from the top: `package`, then `import`, then annotations, then the class declaration. If it is a configuration file, read its list of keys.',
+        why: 'Reading one file properly tells you what it is responsible for and what it depends on. This is where every trace begins.',
+        where: 'The file\'s location (its package path or folder) tells you its role. For example, a file in the `controller` folder receives requests.',
+        missing: 'If you judge by name alone without reading the content, you miss files whose name and role differ, such as a file called "Util" that actually holds business logic.',
+        connects: '`import` points to other files. Annotations (`@Service`, `@Value`) are markers that Spring uses to connect things.',
+        usage: 'When you fix a bug, the first thing you do is open the file with the problem and check its `import`s and call relationships.',
       },
       {
         keyTerms: [
-          ['import', '다른 파일의 클래스나 함수를 가져오는 선언.'],
-          ['어노테이션 (annotation)', '`@`로 시작하는 표시. Spring이 역할을 판단하는 근거가 됩니다.'],
+          ['import', 'A declaration that brings in a class or function from another file.'],
+          ['annotation', 'A marker beginning with `@`. Spring uses it to decide a class\'s role.'],
         ],
         example: tree(`
-package com.example.blog.service;        ← 위치: service 계층
-import com.example.blog.repository.CourseRepository;  ← 의존: Repository
-@Service                                 ← 역할: 업무 계층
+package com.example.blog.service;        ← location: the service layer
+import com.example.blog.repository.CourseRepository;  ← dependency: a Repository
+@Service                                 ← role: business layer
 public class CourseService { ... }
 `),
-        practice: '파일 하나를 골라 `package`, `import`, 어노테이션, 클래스 선언을 각각 표시하고, 이 파일이 가져오는 다른 파일 목록을 적으세요.',
+        practice: 'Pick a file and mark its `package`, `import`, annotations, and class declaration. Then list the other files it imports.',
         check: [
-          { q: '파일을 읽을 때 가장 먼저 보는 줄 3가지는?', a: '`package`(위치), `import`(의존), 클래스 선언과 어노테이션(역할)입니다.' },
-          { q: '`import`는 무엇을 알려 주나요?', a: '이 파일이 어떤 다른 파일에 기대는지 알려 줍니다.' },
+          { q: 'What are the three lines to read first in a file?', a: '`package` (location), `import` (dependencies), and the class declaration with its annotations (role).' },
+          { q: 'What does an `import` tell you?', a: 'Which other files this file depends on.' },
         ],
       },
     ),
     lesson(
       'lab-trace-dependencies',
       'Trace file dependencies',
-      '파일 의존 관계 추적하기',
       25,
-      '파일 하나에서 출발해 그 파일이 가져오는 것과 그것을 가져가는 것을 따라가며, 의존 관계의 그물을 그립니다.',
+      'Starting from one file, follow what it imports and what imports it, and draw the network of dependencies.',
       {
-        what: '의존(dependency)은 "A가 B를 쓴다"는 관계입니다. A의 `import`와 호출을 보면 나가는 화살표, B에서 "A를 찾는 검색 결과"를 보면 들어오는 화살표가 됩니다.',
-        why: '의존 관계를 모르면, 한 파일을 고쳤을 때 어디가 깨지는지 알 수 없습니다. 추적하면 영향 범위를 미리 알 수 있습니다.',
-        where: '검색 도구(IDE의 "Find Usages", 또는 저장소 검색)로 이름을 찾습니다.',
-        missing: '의존 관계를 확인하지 않고 고치면 다른 기능이 깨졌는데 원인을 모르는 상태가 됩니다.',
-        connects: 'Controller → Service → Repository처럼 계층 규칙에 따라 화살표가 정리되면, 규칙을 어긴 의존(예: Controller → Repository 직접)도 쉽게 보입니다.',
-        usage: '리팩터링 전에 "이 메서드를 누가 호출하나"를 찾는 작업이 바로 의존 추적입니다.',
+        what: 'A dependency is the relationship "A uses B." Reading A\'s `import`s and calls gives arrows going out. Searching for A\'s name in B and other files gives arrows coming in.',
+        why: 'Without knowing dependencies, you cannot tell what breaks when you change one file. Tracing them lets you know the scope of a change in advance.',
+        where: 'Use a search tool (the IDE\'s "Find Usages," or repository search) to find the name.',
+        missing: 'If you change code without checking its dependencies, something else breaks and you do not know why.',
+        connects: 'When the Controller → Service → Repository arrows follow the layer rules, a dependency that breaks the rule (for example, a Controller calling a Repository directly) becomes easy to spot.',
+        usage: 'Before refactoring, finding "who calls this method?" is exactly dependency tracing.',
       },
       {
         keyTerms: [
-          ['의존 (dependency)', '한 파일이 다른 파일의 기능을 사용하는 관계.'],
-          ['영향 범위 (blast radius)', '한 변경이 영향을 주는 파일의 범위.'],
+          ['dependency', 'A relationship in which one file uses the functions of another.'],
+          ['blast radius', 'The range of files that a change affects.'],
         ],
         example: tree(`
-CourseController ──▶ CourseService ──▶ CourseRepository ──▶ Course(Entity)
+CourseController ──▶ CourseService ──▶ CourseRepository ──▶ Course (Entity)
       ▲
-      └── 누가 호출하나? → 검색으로 확인
+      └── who calls it? → check with search
 `),
-        practice: '`Service` 클래스 하나를 골라, 그것을 호출하는 파일을 모두 찾아 목록으로 적고, 의존 화살표를 그려 보세요.',
+        practice: 'Pick a `Service` class, find every file that calls it, list them, and draw the dependency arrows.',
         check: [
-          { q: '"이 클래스를 누가 쓰나?"를 찾는 방법은?', a: 'IDE의 Find Usages나 저장소에서 클래스 이름으로 검색합니다.' },
-          { q: '의존 추적이 중요한 이유는?', a: '고친 부분이 다른 기능에 어떤 영향을 주는지 미리 알 수 있기 때문입니다.' },
+          { q: 'How do you find out "who uses this class"?', a: 'Use Find Usages in the IDE, or search the repository for the class name.' },
+          { q: 'Why is dependency tracing important?', a: 'It tells you in advance how a change affects other features.' },
         ],
       },
     ),
     lesson(
       'lab-request-flow',
       'Follow a request from browser to backend and back',
-      '요청 흐름 따라가기 (브라우저 → 백엔드 → 브라우저)',
       30,
-      '화면의 버튼 하나를 골라, 클릭부터 화면 갱신까지 거치는 모든 파일을 순서대로 적습니다. 요청이 나가는 길과 응답이 돌아오는 길을 모두 확인합니다.',
+      'Pick a button on the screen and write down, in order, every file it passes through from the click to the screen update. Check both the path the request takes out and the path the response takes back.',
       {
-        what: '예: 코스 목록 열기. HTML 링크 → JavaScript 라우터 → `fetch(\'/api/courses\')` → Controller → Service → Repository → DB → DTO → JSON → JavaScript 렌더링 → HTML 갱신.',
-        why: '흐름을 한 번 끝까지 따라가 보면, 프론트엔드와 백엔드가 어떻게 이어지는지 실제로 이해하게 됩니다. 이것이 프로젝트 구조를 "읽을 수 있다"는 증거입니다.',
-        where: '브라우저의 개발자 도구 Network 탭에서 실제 요청 주소를 보고, 그 주소를 프로젝트에서 검색합니다.',
-        missing: '흐름의 한 부분을 못 찾으면, 대개 주소가 두 곳에서 조금씩 다르거나(철자, `/` 유무), 인증 단계가 빠진 경우입니다.',
-        connects: '요청 주소 → Controller의 매핑 → Service 메서드 → Repository 메서드 → Entity → DTO → JSON 필드 → JavaScript 변수 → DOM 요소.',
-        usage: '"화면에 데이터가 안 나와요" 문제를 해결하는 기본 절차가 이 흐름을 끝까지 따라가는 것입니다.',
+        what: 'For example, opening the course list: HTML link → JavaScript router → `fetch(\'/api/courses\')` → Controller → Service → Repository → DB → DTO → JSON → JavaScript rendering → HTML update.',
+        why: 'Following the flow end to end once shows you how the frontend and backend actually connect. This is the proof that you can read a project structure.',
+        where: 'Look at the real request address in the browser developer tools Network tab, then search the project for that address.',
+        missing: 'If you cannot find a part of the flow, usually the address differs slightly in two places (spelling, a leading `/`), or an authentication step is missing.',
+        connects: 'Request address → the Controller\'s mapping → Service method → Repository method → Entity → DTO → JSON field → JavaScript variable → DOM element.',
+        usage: 'The basic procedure for "data does not appear on the screen" problems is to follow this flow to the end.',
       },
       {
         keyTerms: [
-          ['요청 흐름 (request flow)', '사용자 동작이 서버를 거쳐 다시 화면에 나타나기까지의 경로.'],
-          ['개발자 도구 (DevTools)', '브라우저에서 요청과 응답을 직접 보는 도구.'],
+          ['request flow', 'The path a user action takes through the server and back to the screen.'],
+          ['DevTools', 'Browser tools for seeing requests and responses directly.'],
         ],
         example: tree(`
-1. 링크 클릭        index.html  (<a href="#/courses">)
-2. 라우터           main.js     (해시 주소 → 화면 함수)
-3. 데이터 요청      views/courses.js → api.js → fetch(\'/api/courses\')
-4. 서버 접수        CourseController.list()
-5. 업무 처리        CourseService → CourseRepository → DB
-6. 응답 조립        CourseDto → JSON
-7. 화면 갱신        views/courses.js → components.js → DOM
+1. Click the link       index.html  (<a href="#/courses">)
+2. Router               main.js     (hash address → screen function)
+3. Data request         views/courses.js → api.js → fetch('/api/courses')
+4. Server reception     CourseController.list()
+5. Business work        CourseService → CourseRepository → DB
+6. Response assembly    CourseDto → JSON
+7. Screen update        views/courses.js → components.js → DOM
 `),
-        practice: '브라우저에서 "코스 목록"을 열고 Network 탭에서 `/api/courses` 요청을 찾아, 위 7단계의 파일 이름을 실제 프로젝트에서 찾아 적으세요.',
+        practice: 'In the browser, open the course list and find the `/api/courses` request in the Network tab. Find the file names for the seven steps above in the real project.',
         check: [
-          { q: '요청이 서버에 도착하면 가장 먼저 만나는 파일은?', a: 'Controller입니다. 주소 매핑으로 찾습니다.' },
-          { q: '응답이 화면에 나타나려면 거치는 JavaScript 파일은?', a: '화면을 그리는 view 파일과, 요청을 보내는 API 호출 파일입니다.' },
+          { q: 'Which file does a request reach first when it arrives at the server?', a: 'The Controller, found by its address mapping.' },
+          { q: 'Which JavaScript files does a response pass through before it reaches the screen?', a: 'The view file that draws the screen, and the API-calling file that sends the request.' },
         ],
       },
     ),
     lesson(
       'lab-architecture-map',
       'Draw a project architecture map',
-      '프로젝트 구조 지도 그리기',
       30,
-      '지금까지 찾은 폴더, 파일, 의존 관계, 요청 흐름을 한 장의 지도로 그립니다. 이 지도가 있으면 다음 기능을 읽을 때 처음부터 헤매지 않습니다.',
+      'Combine the folders, files, dependencies, and request flow you have found into one map. With this map in hand, you will not get lost from the start the next time you read a feature.',
       {
-        what: '지도는 세 층으로 그립니다: 폴더 층(무엇이 어디 있는가), 파일 층(주요 파일과 역할), 흐름 층(요청이 지나가는 화살표). 세 가지를 색이나 선으로 구분합니다.',
-        why: '머릿속에만 있는 구조는 며칠 뒤 잊힙니다. 종이나 문서에 그려 두면 팀원에게도 설명할 수 있고, 새 기능을 어디에 넣을지 결정할 수 있습니다.',
-        where: '지도는 저장소의 `docs/` 폴더에 Markdown이나 그림 파일로 두면 가장 좋습니다.',
-        missing: '지도를 그리지 않으면 프로젝트가 커질수록 "이 기능은 어디 있지?"를 매번 다시 찾아야 합니다.',
-        connects: '지도의 화살표는 6번 모듈의 연결 규칙과 같아야 합니다. 규칙과 다른 화살표가 있다면, 그것이 설계 문제의 신호입니다.',
-        usage: '새 팀원 온보딩 문서나 설계 회의 자료에 이 지도가 가장 먼저 들어갑니다.',
+        what: 'Draw the map in three layers: the folder layer (what is where), the file layer (key files and their roles), and the flow layer (arrows for the path a request takes). Distinguish the three with colours or lines.',
+        why: 'A structure that exists only in your head fades in a few days. Drawing it on paper or in a document lets you explain it to teammates, and decide where a new feature belongs.',
+        where: 'The best place for the map is a `docs/` folder in the repository, as Markdown or an image file.',
+        missing: 'Without a map, as the project grows you must search again every time for "where is this feature?"',
+        connects: 'The arrows on the map must match the connection rules from Module 6. Any arrow that breaks the rules is a signal of a design problem.',
+        usage: 'The map goes first into onboarding documents for new team members and into design review material.',
       },
       {
-        keyTerms: [['아키텍처 지도 (architecture map)', '프로젝트의 구성 요소와 연결을 한눈에 보여 주는 그림.']],
+        keyTerms: [['architecture map', 'A diagram showing a project\'s parts and how they connect.']],
         example: tree(`
-[브라우저]
+[Browser]
   index.html ─ main.js ─ views/courses.js ─ api.js
                                               │ fetch /api/courses
-[서버]                                        ▼
+[Server]                                      ▼
   CourseController → CourseService → CourseRepository → [DB]
-        └── CourseDto (응답) ◀──────────────────┘
+        └── CourseDto (response) ◀────────────┘
 `),
-        practice: '실습 저장소 하나의 구조 지도를 그리세요. 폴더 3개 이상, 주요 파일 5개 이상, 요청 흐름 화살표 1개 이상을 포함하고, 규칙을 어긴 의존이 있다면 표시하세요.',
+        practice: 'Draw a structure map of one repository you have studied. It must include at least three folders, five key files, and at least one request-flow arrow. If there is a dependency that breaks the layer rules, mark it.',
         check: [
-          { q: '구조 지도에 반드시 들어가야 하는 세 가지는?', a: '폴더 구조, 주요 파일과 역할, 요청이 지나가는 흐름입니다.' },
-          { q: '지도의 화살표가 계층 규칙과 다르면 무엇을 뜻하나요?', a: '계층을 건너뛴 의존이 있다는 뜻이며, 설계를 점검해야 한다는 신호입니다.' },
+          { q: 'What three things must an architecture map include?', a: 'The folder structure, the key files and their roles, and the flow a request follows.' },
+          { q: 'What does it mean if an arrow on the map breaks the layer rules?', a: 'A layer is being skipped by a dependency, which is a signal that the design needs to be reviewed.' },
         ],
       },
     ),
   ],
   {
-    title: '실제 저장소 구조 지도',
-    description: '공개 Spring Boot 저장소 하나를 골라 6단계 실습을 모두 마친 뒤 결과를 한 장으로 정리합니다.',
-    deliverables: ['폴더 역할 표', '주요 파일 5개의 역할과 의존 관계', '화면 버튼 하나의 요청 흐름 (브라우저 → 백엔드 → 브라우저)', '구조 지도 한 장'],
+    title: 'Structure map of a real repository',
+    description: 'Pick one public Spring Boot repository, complete the six steps of this lab, and summarize the results on a single page.',
+    deliverables: ['A table of folder roles', 'The roles and dependencies of five key files', 'The request flow for one button (browser → backend → browser)', 'One structure map on a single page'],
   },
 );
-

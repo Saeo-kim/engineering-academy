@@ -23,9 +23,9 @@ const NAV = [
   { group: 'Workspace' },
   { href: '#/', label: 'Dashboard', icon: 'dashboard', match: '' },
   { href: '#/capture', label: 'Quick Capture', icon: 'capture', match: 'capture' },
-  { group: '공부 시작' },
-  { href: '#/curriculum', label: '커리큘럼', icon: 'curriculum', match: 'curriculum' },
-  { href: '#/explain', label: '코드 해부실', icon: 'explain', match: 'explain' },
+  { group: 'Start studying' },
+  { href: '#/curriculum', label: 'Curriculum', icon: 'curriculum', match: 'curriculum' },
+  { href: '#/explain', label: 'Code Explainer', icon: 'explain', match: 'explain' },
   { group: 'Archive' },
   { href: '#/knowledge', label: 'Knowledge Library', icon: 'library', match: 'knowledge' },
   { href: '#/errors', label: 'Error Archive', icon: 'errors', match: 'errors' },
@@ -194,7 +194,7 @@ async function render() {
   window.scrollTo(0, 0);
 }
 
-// 공부 경로: the last pages studied, one click to go back to any of them.
+// Study trail: the last pages studied, one click to go back to any of them.
 const trailEl = document.getElementById('trail');
 const STUDY_PAGE = /^(knowledge|commands|errors|workflows)\/\d+$|^(curriculum|explain)$|^practice\//;
 
@@ -222,7 +222,7 @@ function recordTrail(path) {
   trailEl.hidden = others.length === 0;
   replaceChildren(
     trailEl,
-    h('span', { class: 'trail-label' }, '← 방금 공부한 곳'),
+    h('span', { class: 'trail-label' }, '← Just studied'),
     others.slice(0, 5).map((t) => h('a', { class: 'trail-item', href: t.hash, title: t.title }, t.title)),
   );
 }

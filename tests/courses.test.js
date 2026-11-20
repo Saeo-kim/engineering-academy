@@ -106,8 +106,10 @@ describe('Robotics Engineering curriculum', () => {
   });
 
   it('is written entirely in English', () => {
-    const text = JSON.stringify(ROBOTICS);
-    assert.doesNotMatch(text, /[ㄱ-힣぀-ヿ一-鿿]/, 'no Korean, Japanese or Chinese characters');
+    for (const track of [ROBOTICS, PROJECT_STRUCTURE]) {
+      const text = JSON.stringify(track);
+      assert.doesNotMatch(text, /[ㄱ-힣぀-ヿ一-鿿]/, `${track.id} has no Korean, Japanese or Chinese text`);
+    }
   });
 
   it('adds Robotics as a Knowledge Library category', () => {
@@ -334,7 +336,6 @@ describe('Project Structure & File Literacy course', () => {
   it('is registered after Robotics Engineering, with its Korean title', () => {
     assert.ok(TRACKS.includes(PROJECT_STRUCTURE));
     assert.equal(PROJECT_STRUCTURE.title, 'Project Structure & File Literacy');
-    assert.equal(PROJECT_STRUCTURE.titleKo, '프로젝트 구조와 파일 이해');
     assert.equal(TRACKS[0].id, 'robotics', 'the existing course keeps its position');
   });
 
@@ -360,7 +361,7 @@ describe('Project Structure & File Literacy course', () => {
   });
 
   it('gives every lesson the six questions, in order, each with content', () => {
-    const headings = [/무엇인가/, /왜 존재/, /위치/, /없으면/, /연결/, /실제 프로젝트/];
+    const headings = [/What is it/, /Why does it exist/, /located here/, /missing/, /connect/, /real project/];
     for (const l of lessons) {
       assert.equal(l.sections.length, 6, `${l.id} has six sections`);
       l.sections.forEach((s, i) => {
@@ -376,7 +377,7 @@ describe('Project Structure & File Literacy course', () => {
       assert.ok(l.practice.trim().length > 20, `${l.id} has an exercise`);
       assert.ok(l.knowledgeCheck.length >= 2, `${l.id} has knowledge checks`);
       for (const c of l.knowledgeCheck) assert.ok(c.q && c.a, `${l.id} check is complete`);
-      assert.match(l.sections.map((s) => s.body).join(' '), /[가-힣]/, `${l.id} is explained in Korean`);
+      assert.doesNotMatch(l.sections.map((s) => s.body).join(' '), /[가-힣]/, `${l.id} is written in English`);
     }
   });
 
@@ -398,7 +399,7 @@ describe('Project Structure & File Literacy course', () => {
       const list = (await s.api('GET', 'courses')).json;
       assert.equal(list[0].id, 'robotics');
       const pst = list.find((c) => c.id === 'project-structure');
-      assert.equal(pst.titleKo, '프로젝트 구조와 파일 이해');
+      assert.equal(pst.title, 'Project Structure & File Literacy');
       assert.equal(pst.lessons, 54);
       const lesson = await s.api('GET', 'courses/project-structure/lessons/folder-templates');
       assert.equal(lesson.status, 200);

@@ -1,6 +1,6 @@
-// 코드 해부: every word in a code block can be hovered (short explanation)
+// Code Explainer: every word in a code block can be hovered (short explanation)
 // and clicked (a side panel with the full explanation). Inside the panel,
-// "더 깊이" buttons go one level down; "← 이전" goes back up the trail, so
+// "Go deeper" buttons go one level down; "← Back" goes back up the trail, so
 // you can always return to where you were studying.
 //
 // This module builds DOM with document.createElement and text nodes only.
@@ -98,7 +98,7 @@ function termSpan(text, entry) {
   return span;
 }
 
-// "이 줄 해석": read significant tokens left to right.
+// "Explain this line": read significant tokens left to right.
 export function readLine(line) {
   const tokens = tokenize(line);
   const parts = [];
@@ -120,7 +120,7 @@ function showTooltip(target) {
   const entry = term(target.dataset.term) ?? lookup(target.textContent);
   if (!entry) return;
   tooltip ??= document.body.appendChild(el('div', 'xtip'));
-  tooltip.replaceChildren(el('strong', null, entry.label), el('span', null, entry.short), el('em', null, '클릭하면 자세히'));
+  tooltip.replaceChildren(el('strong', null, entry.label), el('span', null, entry.short), el('em', null, 'Click for details'));
   tooltip.hidden = false;
   const r = target.getBoundingClientRect();
   const w = Math.min(340, window.innerWidth - 24);
@@ -179,24 +179,24 @@ function closeDrawer() {
 function renderDrawer() {
   if (!drawer) {
     drawer = document.body.appendChild(el('aside', 'xdrawer'));
-    drawer.setAttribute('aria-label', '코드 설명');
+    drawer.setAttribute('aria-label', 'Code explanation');
   }
   const entry = term(stack.at(-1));
   drawer.hidden = false;
   const head = el('div', 'xd-head');
-  const backBtn = el('button', 'button', stack.length > 1 ? '← 이전 설명' : '닫기');
+  const backBtn = el('button', 'button', stack.length > 1 ? '← Previous explanation' : 'Close');
   backBtn.type = 'button';
   backBtn.id = 'xd-back';
   backBtn.onclick = back;
   const close = el('button', 'link-button', '✕');
   close.type = 'button';
-  close.setAttribute('aria-label', '설명 닫기');
+  close.setAttribute('aria-label', 'Close explanation');
   close.onclick = closeDrawer;
   head.append(backBtn, close);
 
   // Breadcrumb: every step of the trail is clickable.
   const crumbs = el('nav', 'xd-crumbs');
-  crumbs.setAttribute('aria-label', '설명 경로');
+  crumbs.setAttribute('aria-label', 'Explanation path');
   stack.forEach((id, i) => {
     const t = term(id);
     if (i) crumbs.append(el('span', 'xd-sep', '›'));
@@ -211,7 +211,7 @@ function renderDrawer() {
 
   const body = el('div', 'xd-body');
   body.append(el('h2', null, entry.label));
-  if (entry.sql) body.append(el('p', 'xd-sql', '🔶 이 코드에서 SQL이 나갈 수 있습니다'));
+  if (entry.sql) body.append(el('p', 'xd-sql', '🔶 SQL may be sent from this code'));
   body.append(el('p', 'xd-short', entry.short));
   for (const para of entry.body ?? []) body.append(paragraph(para));
   if (entry.example) {
@@ -219,11 +219,11 @@ function renderDrawer() {
     const code = el('code');
     code.append(annotate(entry.example));
     pre.append(code);
-    body.append(el('h3', null, '예시 (여기 단어도 눌러 보세요)'), pre);
+    body.append(el('h3', null, 'Example (click the words here too)'), pre);
   }
   const deeper = (entry.deeper ?? []).map(term).filter(Boolean).filter((t) => !stack.includes(t.id));
   if (deeper.length) {
-    body.append(el('h3', null, '그래도 모르겠으면 → 더 깊이'));
+    body.append(el('h3', null, 'Still unclear? → Go deeper'));
     const list = el('div', 'xd-deeper');
     for (const t of deeper) {
       const b = el('button', 'xd-deep');
@@ -234,7 +234,7 @@ function renderDrawer() {
     }
     body.append(list);
   }
-  const search = el('a', 'xd-search', `Academy에서 "${entry.label.replace(/[()@]/g, '').trim()}" 기록 검색 →`);
+  const search = el('a', 'xd-search', `Search records for "${entry.label.replace(/[()@]/g, '').trim()}" →`);
   search.href = `#/search?q=${encodeURIComponent(entry.label.replace(/[()@]/g, '').split(/\s/)[0])}`;
   body.append(search);
 

@@ -69,7 +69,6 @@ export async function coursesView() {
               { class: 'panel course-card', dataset: { course: c.id } },
               h('span', { class: 'badge level' }, c.level),
               h('h2', null, h('a', { href: courseHref(c.id) }, c.title)),
-              c.titleKo && h('p', { class: 'course-title-ko', lang: 'ko' }, c.titleKo),
               h('p', { class: 'course-tagline' }, c.tagline),
               h(
                 'ul',
@@ -159,7 +158,6 @@ export async function courseView({ params, query }) {
       { class: 'course-hero' },
       h('span', { class: 'badge level' }, course.level),
       h('h1', null, course.title),
-      course.titleKo && h('p', { class: 'course-title-ko', lang: 'ko' }, course.titleKo),
       h('p', { class: 'intro' }, course.tagline),
       h(
         'ul',
