@@ -4,9 +4,12 @@ import { installExplainer } from './explain.js';
 import { captureView } from './views/capture.js';
 import { curriculumView } from './views/curriculum.js';
 import { explainerView } from './views/explainer.js';
+import { clearPrivateCaches, initPwa, isUpdateReady } from './pwa.js';
+import { courseView, coursesView, lessonView } from './views/courses.js';
 import { dashboardView } from './views/dashboard.js';
 import { detailView } from './views/detail.js';
 import { formView } from './views/form.js';
+import { installView } from './views/install.js';
 import { listView } from './views/list.js';
 import { loginView } from './views/login.js';
 import { mapView } from './views/map.js';
@@ -29,12 +32,24 @@ const NAV = [
   { href: '#/commands', label: 'Command Library', icon: 'commands', match: 'commands' },
   { href: '#/workflows', label: 'Workflows', icon: 'workflows', match: 'workflows' },
   { group: 'Learn' },
+  { href: '#/courses', label: 'Courses', icon: 'courses', match: 'courses' },
   { href: '#/review', label: 'Review Center', icon: 'review', match: 'review' },
   { href: '#/quiz', label: 'Assessment', icon: 'quiz', match: 'quiz' },
   { href: '#/map', label: 'Knowledge Map', icon: 'map', match: 'map' },
   { href: '#/progress', label: 'Progress', icon: 'progress', match: 'progress' },
   { group: 'Find' },
   { href: '#/search', label: 'Search', icon: 'search', match: 'search' },
+  { group: 'App' },
+  { href: '#/install', label: 'Install App', icon: 'install', match: 'install' },
+];
+
+// Bottom tab bar on phones: the screens you reach for most, one thumb away.
+const TABS = [
+  { href: '#/', label: 'Home', icon: 'home', match: '' },
+  { href: '#/courses', label: 'Courses', icon: 'courses', match: 'courses' },
+  { href: '#/capture', label: 'Capture', icon: 'capture', match: 'capture', primary: true },
+  { href: '#/review', label: 'Review', icon: 'review', match: 'review' },
+  { href: '#/progress', label: 'Progress', icon: 'progress', match: 'progress' },
 ];
 
 const routes = [
@@ -48,6 +63,10 @@ const routes = [
   [/^quiz\/(?<id>\d+)$/, quizView],
   [/^map$/, mapView],
   [/^progress$/, progressView],
+  [/^courses$/, coursesView],
+  [/^courses\/(?<track>[a-z0-9-]+)$/, courseView],
+  [/^courses\/(?<track>[a-z0-9-]+)\/(?<lesson>[a-z0-9-]+)$/, lessonView],
+  [/^install$/, installView],
   [/^practice\/(?<kind>[a-z]+)\/(?<id>\d+)\/(?<mode>explain|rebuild)$/, practiceView],
 ];
 for (const kind of ['knowledge', 'commands', 'errors', 'workflows']) {
@@ -61,6 +80,9 @@ for (const kind of ['knowledge', 'commands', 'errors', 'workflows']) {
 
 const view = document.getElementById('view');
 const nav = document.getElementById('nav');
+const tabbar = document.getElementById('tabbar');
+const shellEl = document.querySelector('.shell');
+const menuToggle = document.getElementById('menu-toggle');
 const searchInput = document.getElementById('global-search');
 
 let dirty = false;
@@ -84,7 +106,29 @@ function renderNav(path) {
         : h('a', { class: `nav-link${item.match === section ? ' active' : ''}`, href: item.href, 'aria-current': item.match === section ? 'page' : undefined }, icon(item.icon), h('span', null, item.label)),
     ),
   );
+  replaceChildren(
+    tabbar,
+    TABS.map((tab) =>
+      h(
+        'a',
+        { class: `tab-link${tab.match === section ? ' active' : ''}${tab.primary ? ' primary' : ''}`, href: tab.href, 'aria-current': tab.match === section ? 'page' : undefined },
+        icon(tab.icon),
+        h('span', null, tab.label),
+      ),
+    ),
+  );
 }
+
+function setMenu(open) {
+  shellEl.classList.toggle('menu-open', open);
+  menuToggle.setAttribute('aria-expanded', String(open));
+  replaceChildren(menuToggle, icon(open ? 'close' : 'menu'), h('span', null, open ? 'Close' : 'Menu'));
+}
+menuToggle.addEventListener('click', () => setMenu(!shellEl.classList.contains('menu-open')));
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && shellEl.classList.contains('menu-open')) setMenu(false);
+});
+setMenu(false);
 
 function errorPanel(err) {
   const missing = err.status === 404;
@@ -101,16 +145,25 @@ function errorPanel(err) {
   );
 }
 
+function loadingPanel() {
+  return h('div', { class: 'page narrow loading-page', role: 'status', 'aria-live': 'polite' }, h('p', { class: 'loading' }, h('span', { class: 'spinner', 'aria-hidden': 'true' }), 'Loading…'));
+}
+
 async function render() {
   const token = (renderToken += 1);
   const { path, query } = parseHash();
   renderNav(path);
+  setMenu(false);
   document.getElementById('chart-tooltip').hidden = true;
   dirty = false;
   currentHash = location.hash;
   if (path !== 'search') searchInput.value = '';
   else if (document.activeElement !== searchInput) searchInput.value = query.get('q') ?? '';
 
+  // Show a loading indicator only if the page takes longer than a flicker.
+  const loadingTimer = setTimeout(() => {
+    if (token === renderToken) view.replaceChildren(loadingPanel());
+  }, 150);
   let node;
   try {
     let matched = null;
@@ -131,6 +184,8 @@ async function render() {
     node = matched ?? errorPanel({ status: 404 });
   } catch (err) {
     node = errorPanel(err);
+  } finally {
+    clearTimeout(loadingTimer);
   }
   if (token !== renderToken) return; // the user has already navigated elsewhere
   view.replaceChildren(node);
@@ -185,6 +240,11 @@ window.addEventListener('hashchange', async () => {
     if (!leave) return;
     dirty = false;
     location.hash = target;
+    return;
+  }
+  // A new version of the app is installed: load it now, between pages.
+  if (isUpdateReady()) {
+    location.reload();
     return;
   }
   render();
@@ -255,6 +315,7 @@ function enableSignOut() {
         id: 'sign-out',
         onclick: async () => {
           await api.logout().catch(() => {});
+          await clearPrivateCaches();
           showLogin();
         },
       },
@@ -266,16 +327,17 @@ function enableSignOut() {
 
 window.addEventListener('auth-required', showLogin);
 
+// The session check and the first page load run in parallel: one round trip
+// instead of two before anything appears. If the session has expired, the
+// page's own API call answers 401 and the sign-in screen takes over.
 async function boot() {
-  try {
-    const session = await api.session();
-    if (session.authRequired) enableSignOut();
-    if (session.authRequired && !session.authenticated) return showLogin();
-  } catch {
-    /* render() shows a recoverable error if the server is unreachable */
-  }
+  const session = api.session().catch(() => null);
   render();
+  const s = await session;
+  if (s?.authRequired) enableSignOut();
+  if (s?.authRequired && !s.authenticated) showLogin();
 }
 
 installExplainer();
+initPwa();
 boot();

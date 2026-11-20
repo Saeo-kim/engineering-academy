@@ -100,6 +100,8 @@ export function createRepository(db) {
   const now = () => new Date().toISOString();
 
   function transaction(fn) {
+    // Durable Objects provide their own transaction API instead of BEGIN/COMMIT.
+    if (db.transaction) return db.transaction(fn);
     db.exec('BEGIN IMMEDIATE');
     try {
       const result = fn();

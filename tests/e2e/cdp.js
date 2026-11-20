@@ -11,13 +11,14 @@ const CANDIDATES = [
   '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
   '/usr/bin/google-chrome',
   '/usr/bin/chromium',
+  '/opt/pw-browsers/chromium-1243/chrome-linux64/chrome',
 ];
 
 export function findBrowser() {
   return CANDIDATES.find((p) => p && existsSync(p));
 }
 
-export async function launch({ profileDir, width = 1440, height = 960 }) {
+export async function launch({ profileDir, width = 1440, height = 960, args = [] }) {
   const executable = findBrowser();
   if (!executable) throw new Error('No Chrome or Edge found. Set CHROME_PATH.');
   const proc = spawn(executable, [
@@ -29,6 +30,9 @@ export async function launch({ profileDir, width = 1440, height = 960 }) {
     '--disable-extensions',
     '--disable-gpu',
     `--window-size=${width},${height}`,
+    // Chrome refuses to start as root (Linux containers, CI) unless sandboxing is off.
+    ...(process.getuid?.() === 0 ? ['--no-sandbox'] : []),
+    ...args,
     'about:blank',
   ]);
   const wsUrl = await new Promise((resolve, reject) => {

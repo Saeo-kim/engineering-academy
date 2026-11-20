@@ -575,16 +575,36 @@ export function createLearning(repo, evaluator) {
 
   // ---- Progress -------------------------------------------------------------
 
-  function progress() {
-    const records = allRecords();
+  // Every record with its learning stage. One pass, shared by Progress and the Dashboard.
+  function stageAll(records, reviews) {
     const stats = attemptStats();
-    const reviews = reviewMap();
-    const staged = records.map((r) => {
+    return records.map((r) => {
       const key = `${r.kind}:${r.id}`;
       return { record: r, ...stageOf(r.kind, r, stats.get(key), reviews.get(key)) };
     });
+  }
 
-    const stages = STAGES.map((s, i) => ({ ...s, count: staged.filter((x) => x.stage > i).length }));
+  const stageCounts = (staged) => {
+    const counts = STAGES.map(() => 0);
+    for (const x of staged) for (let i = 0; i < x.stage; i += 1) counts[i] += 1;
+    return STAGES.map((s, i) => ({ ...s, count: counts[i] }));
+  };
+
+  function focusList(staged, limit) {
+    const nextStep = (x) => x.steps.find((s) => !s.done);
+    return staged
+      .filter((x) => x.stage < STAGES.length)
+      .sort((a, b) => a.stage - b.stage || b.record.created_at.localeCompare(a.record.created_at))
+      .slice(0, limit)
+      .map((x) => ({ kind: x.record.kind, id: x.record.id, title: x.record.title, stage: x.stage, next: nextStep(x)?.label, hint: nextStep(x)?.hint, is_sample: x.record.is_sample }));
+  }
+
+  function progress() {
+    const records = allRecords();
+    const reviews = reviewMap();
+    const staged = stageAll(records, reviews);
+
+    const stages = stageCounts(staged);
     const byCategory = CATEGORIES.map((category) => {
       const group = staged.filter((x) => x.record.category === category);
       return {
@@ -630,12 +650,7 @@ export function createLearning(repo, evaluator) {
       weeks.push({ week: start.toISOString(), scored: row.attempts, avg: row.avg, reviews: reviewsDone });
     }
 
-    const nextStep = (x) => x.steps.find((s) => !s.done);
-    const focus = staged
-      .filter((x) => x.stage < STAGES.length)
-      .sort((a, b) => a.stage - b.stage || b.record.created_at.localeCompare(a.record.created_at))
-      .slice(0, 8)
-      .map((x) => ({ kind: x.record.kind, id: x.record.id, title: x.record.title, stage: x.stage, next: nextStep(x)?.label, hint: nextStep(x)?.hint, is_sample: x.record.is_sample }));
+    const focus = focusList(staged, 8);
 
     const recent = db
       .prepare('SELECT id, kind, item_id, mode, score, rating, created_at FROM attempts ORDER BY created_at DESC, id DESC LIMIT 12')
@@ -662,10 +677,23 @@ export function createLearning(repo, evaluator) {
   }
 
   // Compact numbers for the dashboard.
+  // Computes only what the Dashboard shows: one pass over the records, no
+  // review cards, charts or category tables. Same numbers as progress() and
+  // reviewQueue(); tests/learning.test.js checks they agree.
   function summary() {
-    const p = progress();
-    const queue = reviewQueue();
-    return { stages: p.stages, total: p.total, due: queue.counts.due, newCards: queue.counts.newThisSession, focus: p.focus.slice(0, 4) };
+    const records = allRecords();
+    const reviews = reviewMap();
+    const at = now().toISOString();
+    let due = 0;
+    let fresh = 0;
+    for (const r of records) {
+      if (!exercise(r.kind, r, 'explain').available) continue;
+      const review = reviews.get(`${r.kind}:${r.id}`);
+      if (!review) fresh += 1;
+      else if (review.due_at <= at) due += 1;
+    }
+    const staged = stageAll(records, reviews);
+    return { stages: stageCounts(staged), total: records.length, due, newCards: Math.min(fresh, NEW_PER_SESSION), focus: focusList(staged, 4) };
   }
 
   return { state, attempt, rateAttempt, reviewQueue, review, createQuiz, getQuiz, submitQuiz, quizHistory, map, addLink, removeLink, progress, summary };

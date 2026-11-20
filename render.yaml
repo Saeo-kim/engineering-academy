@@ -1,0 +1,30 @@
+# Render Blueprint for Engineering Academy (https://render.com/docs/blueprint-spec).
+# One always-on web service with a persistent disk for the SQLite database.
+services:
+  - type: web
+    name: engineering-academy
+    runtime: docker
+    plan: starter # always on; the free plan sleeps and has no persistent disk
+    region: singapore
+    branch: claude/kind-goldberg-1bf39i
+    autoDeploy: true
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /healthz
+    disk:
+      name: academy-data
+      mountPath: /var/data # ACADEMY_DB=/var/data/academy.db (set in the Dockerfile)
+      sizeGB: 1
+    envVars:
+      # Sign-in password for the app. Set it in the Render dashboard; never commit it.
+      - key: ACADEMY_PASSWORD
+        sync: false
+      # Keeps sign-ins valid across restarts and deploys.
+      - key: ACADEMY_SESSION_SECRET
+        generateValue: true
+      # Render terminates HTTPS and forwards X-Forwarded-Proto.
+      - key: ACADEMY_TRUST_PROXY
+        value: "true"
+      - key: ACADEMY_SECURE_COOKIES
+        value: "true"
+      # The service's own *.onrender.com hostname is allowed automatically
+      # (RENDER_EXTERNAL_HOSTNAME). For a custom domain, add ACADEMY_ALLOWED_HOSTS.

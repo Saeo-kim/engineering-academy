@@ -14,6 +14,8 @@ const artifacts = join(here, '.artifacts');
 mkdirSync(artifacts, { recursive: true });
 
 const temp = mkdtempSync(join(tmpdir(), 'academy-e2e-'));
+const mediaDir = join(temp, 'media');
+mkdirSync(mediaDir, { recursive: true });
 const PORT = 4399;
 const BASE = `http://127.0.0.1:${PORT}/`;
 
@@ -22,7 +24,7 @@ function startServer(extraEnv = {}) {
   return new Promise((resolve, reject) => {
     server = spawn(process.execPath, ['--disable-warning=ExperimentalWarning', 'server/index.js'], {
       cwd: root,
-      env: { PATH: process.env.PATH, SystemRoot: process.env.SystemRoot, PORT: String(PORT), ACADEMY_DB: join(temp, 'e2e.db'), ...extraEnv },
+      env: { PATH: process.env.PATH, SystemRoot: process.env.SystemRoot, PORT: String(PORT), ACADEMY_DB: join(temp, 'e2e.db'), ACADEMY_MEDIA_DIR: mediaDir, ACADEMY_CURRICULUM: 'false', ...extraEnv },
     });
     let log = '';
     const onData = (chunk) => {
@@ -112,6 +114,8 @@ await step('Sidebar navigation reaches every section', async () => {
     ['Knowledge Map', 'Knowledge Map'],
     ['Progress', 'Progress'],
     ['Search', 'Search'],
+    ['Courses', 'Courses'],
+    ['Install App', 'Install the App'],
     ['Dashboard', 'Dashboard'],
   ];
   for (const [link, heading] of expected) {
@@ -599,8 +603,162 @@ await step('Progress shows the learning funnel, focus list, and recent practice'
   assert.ok((await page.text('#learning-loop')).includes('Verified'));
 });
 
+const lessonPressed = () => page.evaluate(`document.getElementById('lesson-complete')?.getAttribute('aria-pressed')`);
+
+await step('Robotics course: catalogue, syllabus, lesson completion, and saving to the library', async () => {
+  await page.route('#/courses');
+  assert.equal(await h1(), 'Courses');
+  assert.ok((await page.text('#course-list')).includes('Robotics Engineering'));
+  const before = await page.evaluate(`document.getElementById('view').dataset.ready`);
+  await page.click('#course-continue');
+  await page.waitFor(`document.getElementById('view').dataset.ready !== ${JSON.stringify(before)}`);
+  assert.equal(await h1(), 'What is a robot?');
+  assert.equal(await page.count('.objectives li'), 3);
+  assert.ok((await page.count('.terms dt')) >= 4);
+  assert.ok(await page.exists('#video-empty #video-find'), 'offers to find lecture videos');
+  assert.match(await page.evaluate(`document.getElementById('video-find').href`), /^https:\/\/www\.youtube\.com\/results\?search_query=/);
+  await shot('course-lesson');
+
+  await page.click('#lesson-complete');
+  await page.waitFor(`document.getElementById('lesson-complete').getAttribute('aria-pressed') === 'true'`);
+  await page.route('#/courses/robotics');
+  assert.match(await page.text('#course-status'), /^1 of \d+ lessons complete/);
+  assert.ok(await page.exists('.lesson-row.done[data-lesson="what-is-a-robot"]'));
+  assert.ok(await page.exists('.lesson-row.next[data-lesson="types-of-robots"]'), 'the next lesson is highlighted');
+  assert.equal(await page.count('.stage'), 4);
+  await shot('course-syllabus');
+
+  // Save to the Knowledge Library so the learning loop can test it.
+  await page.route('#/courses/robotics/what-is-a-robot');
+  await page.click('#lesson-save');
+  await page.waitFor(`document.getElementById('lesson-library')`);
+  const href = await page.evaluate(`document.getElementById('lesson-library').getAttribute('href')`);
+  await page.route(href);
+  assert.equal(await h1(), 'What is a robot?');
+  assert.ok((await page.text('#view')).includes('Robotics'));
+
+  // Next → moves on and counts the lesson as complete.
+  await page.route('#/courses/robotics/types-of-robots');
+  await page.click('#lesson-next');
+  await page.waitFor(`document.querySelector('#view h1')?.innerText === 'Anatomy of a robot'`);
+  await page.route('#/courses/robotics');
+  assert.ok(await page.exists('.lesson-row.done[data-lesson="types-of-robots"]'));
+});
+
+await step('Lecture videos play inline from the media folder and embed from YouTube links', async () => {
+  // Record a short WebM lecture in the browser and drop it into the media folder.
+  const base64 = await page.evaluate(`(async () => {
+    const canvas = Object.assign(document.createElement('canvas'), { width: 320, height: 180 });
+    const ctx = canvas.getContext('2d');
+    const stream = canvas.captureStream(30);
+    const recorder = new MediaRecorder(stream, { mimeType: 'video/webm' });
+    const chunks = [];
+    recorder.ondataavailable = (e) => chunks.push(e.data);
+    let frame = 0;
+    const timer = setInterval(() => { ctx.fillStyle = frame++ % 2 ? '#54cdb0' : '#12181e'; ctx.fillRect(0, 0, 320, 180); }, 33);
+    recorder.start();
+    await new Promise((r) => setTimeout(r, 1500));
+    recorder.stop();
+    await new Promise((r) => (recorder.onstop = r));
+    clearInterval(timer);
+    const bytes = new Uint8Array(await new Blob(chunks, { type: 'video/webm' }).arrayBuffer());
+    let binary = '';
+    for (const b of bytes) binary += String.fromCharCode(b);
+    return btoa(binary);
+  })()`);
+  writeFileSync(join(mediaDir, 'robot-intro.webm'), Buffer.from(base64, 'base64'));
+
+  await page.route('#/courses/robotics/anatomy-of-a-robot');
+  assert.equal(await lessonPressed(), 'false');
+  await page.click('#video-change');
+  await page.waitFor(`document.querySelector('#video-file option[value="/media/robot-intro.webm"]')`, { label: 'media file offered' });
+  await page.select('#video-file', '/media/robot-intro.webm');
+  await page.click('#video-save');
+  await page.waitFor(`document.querySelector('#lesson-video video')`);
+  assert.equal(await page.evaluate(`document.querySelector('#lesson-video video').playsInline`), true, 'plays inline on iPhone');
+  assert.equal(await page.evaluate(`document.querySelector('#lesson-video video').controls`), true);
+  // Plays through the server's ranged video responses, then completes the lesson when it ends.
+  await page.evaluate(`(() => { const v = document.querySelector('#lesson-video video'); v.muted = true; return v.play().then(() => true); })()`);
+  await page.waitFor(`document.querySelector('#lesson-video video').currentTime > 0.2`, { label: 'video playing', timeout: 8000 });
+  await page.waitFor(`document.getElementById('lesson-complete').getAttribute('aria-pressed') === 'true'`, { label: 'completed when the video ends', timeout: 8000 });
+  await shot('course-video-file');
+
+  // A YouTube link becomes a privacy-enhanced, inline embed that keeps its start time.
+  await page.click('#video-change');
+  await page.waitFor(`document.getElementById('video-url')`);
+  await page.evaluate(`document.getElementById('video-url').value = ''`);
+  await page.type('#video-url', 'https://www.youtube.com/watch?v=abcdefghijk&t=1m30s');
+  await page.click('#video-save');
+  await page.waitFor(`document.querySelector('#lesson-video iframe')`);
+  assert.equal(await page.evaluate(`document.querySelector('#lesson-video iframe').src`), 'https://www.youtube-nocookie.com/embed/abcdefghijk?playsinline=1&rel=0&start=90');
+  assert.equal(await page.evaluate(`document.querySelector('#lesson-video iframe').referrerPolicy`), 'strict-origin-when-cross-origin');
+  assert.equal(await page.evaluate(`document.querySelector('#lesson-video iframe').allowFullscreen`), true);
+
+  // Unsafe links are refused and the current video stays.
+  await page.click('#video-change');
+  await page.waitFor(`document.getElementById('video-url')`);
+  await page.evaluate(`document.getElementById('video-url').value = ''`);
+  await page.type('#video-url', 'javascript:alert(1)');
+  await page.click('#video-save');
+  await page.waitFor(`[...document.querySelectorAll('.toast.error')].some((t) => t.innerText.includes('https://'))`);
+  await page.route('#/courses/robotics');
+  assert.ok(await page.exists('.lesson-row[data-lesson="anatomy-of-a-robot"] .has-video'));
+});
+
+await step('Phone layout: bottom tab bar, menu sheet, and iPhone-friendly controls', async () => {
+  await page.setViewport(390, 844, true);
+  await page.route('#/');
+  assert.equal(await page.evaluate(`getComputedStyle(document.getElementById('tabbar')).display`), 'grid');
+  assert.equal(await page.count('#tabbar .tab-link'), 5);
+  assert.equal(await page.evaluate(`getComputedStyle(document.getElementById('nav')).display`), 'none', 'full navigation is tucked into the menu');
+  assert.equal(await page.evaluate(`getComputedStyle(document.getElementById('topbar-capture')).display`), 'none');
+  assert.ok(await page.exists('#continue-course'), 'dashboard offers to continue the course');
+  assert.ok((await page.evaluate(`parseFloat(getComputedStyle(document.getElementById('global-search')).fontSize)`)) >= 16, 'no zoom-on-focus in iPhone Safari');
+
+  const before = await page.evaluate(`document.getElementById('view').dataset.ready`);
+  await page.evaluate(`[...document.querySelectorAll('#tabbar .tab-link')].find((a) => a.innerText.trim() === 'Courses').click()`);
+  await page.waitFor(`document.getElementById('view').dataset.ready !== ${JSON.stringify(before)}`);
+  assert.equal(await h1(), 'Courses');
+  assert.equal(await page.text('#tabbar .tab-link.active'), 'Courses');
+
+  await page.click('#menu-toggle');
+  assert.equal(await page.evaluate(`document.getElementById('menu-toggle').getAttribute('aria-expanded')`), 'true');
+  assert.equal(await page.evaluate(`getComputedStyle(document.getElementById('nav')).display`), 'grid');
+  await shot('mobile-menu');
+  const ready = await page.evaluate(`document.getElementById('view').dataset.ready`);
+  await page.evaluate(`[...document.querySelectorAll('.nav-link')].find((a) => a.innerText.trim() === 'Knowledge Map').click()`);
+  await page.waitFor(`document.getElementById('view').dataset.ready !== ${JSON.stringify(ready)}`);
+  assert.equal(await h1(), 'Knowledge Map');
+  assert.equal(await page.evaluate(`document.getElementById('menu-toggle').getAttribute('aria-expanded')`), 'false', 'menu closes after navigating');
+
+  await page.route('#/courses/robotics/anatomy-of-a-robot');
+  const frame = await page.evaluate(`(() => { const r = document.getElementById('lesson-video').getBoundingClientRect(); return { left: r.left, width: r.width, height: r.height }; })()`);
+  assert.equal(frame.left, 0, 'video is full-bleed on phones');
+  assert.equal(frame.width, 390);
+  assert.ok(Math.abs(frame.height - (390 * 9) / 16) < 2, '16:9 player');
+  await shot('mobile-lesson-video');
+  await page.setViewport(1440, 960);
+});
+
+await step('Installable app: manifest, icons, service worker, and install instructions', async () => {
+  const manifest = await page.evaluate(`fetch(document.querySelector('link[rel="manifest"]').href).then((r) => r.json())`);
+  assert.equal(manifest.name, 'Engineering Academy');
+  assert.equal(manifest.display, 'standalone');
+  assert.ok(manifest.icons.some((i) => i.sizes === '512x512' && i.purpose === 'maskable'));
+  for (const src of [...manifest.icons.map((i) => i.src), await page.evaluate(`document.querySelector('link[rel="apple-touch-icon"]').getAttribute('href')`)]) {
+    assert.equal(await page.evaluate(`fetch(${JSON.stringify(src)}).then((r) => r.status)`), 200, src);
+  }
+  const scope = await page.evaluate(`Promise.race([navigator.serviceWorker.ready.then((r) => r.scope), new Promise((r) => setTimeout(() => r('timeout'), 6000))])`);
+  assert.equal(scope, BASE, 'service worker controls the whole app');
+  await page.route('#/install');
+  assert.equal(await h1(), 'Install the App');
+  assert.equal(await page.count('#ios-steps li'), 5);
+  assert.ok((await page.text('#ios-steps')).includes('Add to Home Screen'));
+  await shot('install');
+});
+
 await step('Layout has no horizontal overflow from phone to desktop', async () => {
-  const routes = ['#/', '#/capture', '#/knowledge', '#/errors', '#/commands', '#/workflows', '#/search?q=git', '#/knowledge/1', '#/errors/1', '#/commands/1', '#/workflows/1', '#/knowledge/1/edit', '#/practice/knowledge/2/explain', '#/practice/commands/1/rebuild', '#/review', '#/quiz', '#/map', '#/progress'];
+  const routes = ['#/', '#/capture', '#/knowledge', '#/errors', '#/commands', '#/workflows', '#/search?q=git', '#/knowledge/1', '#/errors/1', '#/commands/1', '#/workflows/1', '#/knowledge/1/edit', '#/practice/knowledge/2/explain', '#/practice/commands/1/rebuild', '#/review', '#/quiz', '#/map', '#/progress', '#/courses', '#/courses/robotics', '#/courses/robotics/pid-control', '#/courses/robotics/anatomy-of-a-robot', '#/install'];
   for (const [width, height, mobile] of [[390, 844, true], [768, 1024, false], [1024, 768, false], [1440, 900, false]]) {
     await page.setViewport(width, height, mobile);
     for (const route of routes) {
@@ -609,7 +767,7 @@ await step('Layout has no horizontal overflow from phone to desktop', async () =
       await new Promise((r) => setTimeout(r, 60));
       const overflow = await page.evaluate('document.documentElement.scrollWidth - window.innerWidth');
       assert.ok(overflow <= 0, `${route} overflows by ${overflow}px at ${width}px`);
-      if (width === 390 && ['#/', '#/knowledge', '#/errors/1', '#/review', '#/map', '#/progress'].includes(route)) {
+      if (width === 390 && ['#/', '#/knowledge', '#/errors/1', '#/review', '#/map', '#/progress', '#/courses', '#/courses/robotics', '#/courses/robotics/pid-control', '#/install'].includes(route)) {
         await shot(`mobile-${route.replace(/\W+/g, '-')}`);
       }
     }

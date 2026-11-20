@@ -1,0 +1,14 @@
+.git
+.github
+.claude
+data
+node_modules
+tests
+docs
+scripts
+*.db
+*.db-*
+.env
+.env.*
+*.pem
+*.key

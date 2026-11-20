@@ -13,6 +13,7 @@ export const CATEGORIES = [
   'Security',
   'AI Tools',
   'Computer Basics',
+  'Robotics',
   'Other',
 ];
 

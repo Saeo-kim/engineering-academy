@@ -10,6 +10,10 @@ A personal engineering knowledge and training system. It is not just a place to 
 | 4 | **Reproduce** | Rebuild challenges: write the command, code example, fix or procedure from memory and diff it against the reference. |
 | 5 | **Verify** | Generated assessments and spaced-repetition reviews confirm the knowledge has stuck. |
 
+It also teaches: **Courses** are structured engineering tracks (modules → lessons → learning objectives) with a lecture video player on every lesson. The first track is **Robotics Engineering**: 11 modules, 47 lessons, from robot fundamentals to capstone projects.
+
+The whole app works on a phone and installs on an iPhone Home Screen as an app (a Progressive Web App), with its own icon and a full-screen window.
+
 Everything runs on Node.js's standard library. There are no npm dependencies and no build step, and no paid service is needed for any feature.
 
 ![Dashboard](docs/screenshots/dashboard.png)
@@ -31,6 +35,11 @@ Everything runs on Node.js's standard library. There are no npm dependencies and
 | **Knowledge Map** | Every record grouped by category, links drawn between them, learning stage shown as a ring, plus one-click *suggested connections* between records that share tags |
 | **Progress** | Learning-loop funnel, mastery by category, explain/rebuild/assessment statistics, weekly practice chart, and a *work on next* list that links to the right next action |
 | **Search** | Substring search across all four collections, including Korean text and literal `%` and `_` |
+| **Courses** | Structured learning tracks: stages → modules → lessons, each lesson with learning objectives, explanations, key terms, a real-world example and a practice exercise, and a hands-on project at the end of every module. Progress, "continue where you left off" and an *Up next* marker. |
+| **Lecture videos** | Every lesson has a video player. Attach a YouTube or Vimeo link (played inline through the privacy-enhanced embed) or an .mp4/.webm file, either by URL or from your own media folder. Native videos resume where you stopped and complete the lesson when they end. *Find lecture videos* searches YouTube for the lesson topic. |
+| **Lesson → learning loop** | *Save to Knowledge Library* turns a lesson into a knowledge record (category **Robotics**), so explain-back, reviews and assessments work on course material too. |
+| **Mobile and iPhone** | Phone layout with a bottom tab bar and a menu sheet, full-bleed 16:9 video, 44 px touch targets, no zoom-on-focus in Safari, and safe-area support for notched iPhones. |
+| **Installable app (PWA)** | Web app manifest, service worker and Home Screen icons. Installs on iPhone, Android and desktop, opens full screen, and keeps the app shell and opened lessons available offline. *Install App* shows step-by-step instructions. |
 | **Learning stage per record** | Every detail page shows its stage (Captured → Understood → Explained → Reproduced → Verified) and what unlocks the next one |
 
 | Explain-back | Review Center |
@@ -41,7 +50,84 @@ Everything runs on Node.js's standard library. There are no npm dependencies and
 | **Assessment** | **Record detail with learning loop** |
 | ![Assessment](docs/screenshots/assessment.png) | ![Record detail](docs/screenshots/record-detail.png) |
 
+| **Course syllabus** | **Lesson with objectives and video** |
+| --- | --- |
+| ![Course syllabus](docs/screenshots/course-syllabus.png) | ![Lesson](docs/screenshots/course-lesson.png) |
+
+| iPhone: Dashboard | iPhone: Course | iPhone: Lesson | iPhone: Install |
+| --- | --- | --- | --- |
+| ![Mobile dashboard](docs/screenshots/mobile-dashboard.png) | ![Mobile course](docs/screenshots/mobile-course.png) | ![Mobile lesson](docs/screenshots/mobile-lesson.png) | ![Mobile install](docs/screenshots/mobile-install.png) |
+
 The screenshots come from `npm run screenshots`, which drives the real app against a fresh database containing only the built-in example records.
+
+## Robotics Engineering course
+
+Beginner-friendly, and it builds step by step towards real engineering projects. No prior programming is required; high-school algebra and basic trigonometry are enough to start. Each module ends with a hands-on project, and the final module is three capstone builds plus a portfolio.
+
+| # | Module | Stage · level | Lessons | Module project |
+| --- | --- | --- | --- | --- |
+| 1 | Robot Fundamentals | Foundations · Beginner | What is a robot? · Types and applications of robots · Anatomy of a robot · Degrees of freedom, workspace and coordinate frames | Robot teardown report |
+| 2 | Mechanical Systems | Foundations · Beginner | Links, joints and kinematic chains · Actuators: DC, servo and stepper motors · Gears, transmissions and torque · Forward kinematics of a planar arm · End effectors, materials and structure | Two-link arm calculator and model |
+| 3 | Electronics for Robotics | Foundations · Beginner | Voltage, current, resistance and power · Microcontrollers: GPIO, PWM and ADC · Motor drivers and H-bridges · Batteries and power distribution | Motor control test bench |
+| 4 | Sensors and Perception | Core skills · Intermediate | Sensor fundamentals: accuracy, precision and noise · Encoders and IMUs · Distance sensing: ultrasonic, infrared and LiDAR · Cameras and computer vision basics · Filtering and sensor fusion | Obstacle-aware sensor head |
+| 5 | Robot Programming | Core skills · Intermediate | Robot software architecture and control loops · Embedded programming in C++ (Arduino) · Python for robotics · ROS 2: nodes, topics, services and actions · Simulation and digital twins | Teleoperated rover with telemetry |
+| 6 | Control Systems | Core skills · Intermediate | Open-loop and closed-loop control · PID control · Tuning controllers in practice · Differential-drive kinematics and odometry | Precise driving challenge |
+| 7 | Artificial Intelligence for Robotics | Advanced | Machine learning for robots · Deep learning for robot perception · Reinforcement and imitation learning · Foundation models and edge AI | Vision-guided robot behaviour |
+| 8 | Autonomous Systems | Advanced | Localization · Mapping and SLAM · Path planning: A*, Dijkstra and RRT · Navigation and obstacle avoidance · Decision-making with behaviour trees | Autonomous navigation in simulation |
+| 9 | Human-Robot Interaction | Advanced | Foundations of human-robot interaction · Collaborative robots (cobots) · Trust, transparency and ethics | Interaction design for a shared-space robot |
+| 10 | Robot Safety Engineering | Advanced | Hazards and risk assessment · Safety standards for robots · Emergency stops, safeguarding and safe states · Electrical, battery and software safety | Safety case for your robot |
+| 11 | Capstone Engineering Projects | Capstone · Project | The robotics engineering process · Project 1: Smart line-following robot · Project 2: Autonomous ROS 2 rover · Project 3: Vision-guided pick-and-place arm | Engineering portfolio |
+
+Every lesson contains: a summary, *why it matters*, three learning objectives, two or three explanation sections, key terms with definitions, a real-world example, a practice exercise and a lecture video slot. Total reading time is about 23 hours, plus videos and projects.
+
+The curriculum lives in `server/curriculum/robotics.js`. Your progress, attached videos and saved notes live in the database, keyed by lesson id, so improving the text never loses progress. Add another track by creating a file next to it and listing it in `TRACKS` in `server/courses.js`.
+
+### Lecture videos
+
+The app ships no video files and links to no specific videos: links to third-party videos go stale, and you should choose lectures you like. On each lesson:
+
+- **Find lecture videos** opens a YouTube search for that lesson's topic (in the YouTube app on iPhone).
+- **Attach a video** accepts a YouTube link (`watch`, `youtu.be`, `shorts`, playlists, `t=` start times), a Vimeo link, or a direct https link to an .mp4/.webm/.mov file. YouTube plays inline through `youtube-nocookie.com`.
+- To host your own lectures, put .mp4 (H.264), .m4v, .webm or .mov files in `data/videos/` (or `ACADEMY_MEDIA_DIR`) and pick them from the list in the attach form. They are served with HTTP range requests, which iPhone Safari needs for playback and seeking, and they require sign-in when a password is set.
+
+## Use it on your iPhone
+
+The recommended setup is a permanent cloud deployment on Cloudflare's free plan: static files from the nearest edge, the API and SQLite database in a Durable Object, HTTPS, no sleeping server and no cost. Your computer does not need to be on. See [docs/DEPLOY.md](docs/DEPLOY.md). The options below are for running it from your own computer instead.
+
+The app runs on your computer, so your phone needs a way to reach it, and that computer must be on and running `npm run start:public`. For "any time, anywhere" access, use an always-on computer or a small server. Installing as an app and offline support need **https**.
+
+### Option A (recommended): Tailscale, private and works anywhere
+
+[Tailscale](https://tailscale.com) is free for personal use. It gives your computer a fixed https address that only your own devices can reach.
+
+1. Install Tailscale on the computer and on your iPhone, and sign in to the same account on both.
+2. On the computer, run `tailscale serve --bg 4310`. It prints an address like `https://my-pc.tail1234.ts.net`. If it asks you to, enable **HTTPS certificates** (and MagicDNS) in the Tailscale admin console first.
+3. Create `.env` (copy `.env.example`) with:
+
+   ```dotenv
+   ACADEMY_ALLOWED_HOSTS=my-pc.tail1234.ts.net
+   ACADEMY_PASSWORD=choose-a-long-password
+   ACADEMY_SESSION_SECRET=any-long-random-text
+   ACADEMY_SECURE_COOKIES=true
+   ```
+
+4. Run `npm run start:public`, then open the https address in Safari on the iPhone with Tailscale switched on.
+
+A Cloudflare Tunnel works too (`ACADEMY_ALLOWED_HOSTS=*.trycloudflare.com` plus `ACADEMY_TRUST_PROXY=true`), but a quick tunnel gets a new address each time it starts, and an installed app is tied to one address, so use a named tunnel with your own domain for a permanent install.
+
+### Option B: home Wi-Fi only
+
+Set `HOST=0.0.0.0`, `ACADEMY_ALLOWED_HOSTS=<your computer's LAN IP, e.g. 192.168.1.20>` and `ACADEMY_PASSWORD` in `.env`, run `npm run start:public`, and open `http://192.168.1.20:4310` on the iPhone. Everything works and Add to Home Screen still opens it full screen, but without https there is no service worker, so no offline access.
+
+### Install on the iPhone Home Screen
+
+1. Open the app's address in **Safari** and sign in.
+2. Tap **Share** (the square with an arrow). If you do not see it, tap **•••** next to the address bar first.
+3. Tap **Add to Home Screen**. If it is missing, tap **Edit Actions** and add it.
+4. If shown, keep **Open as Web App** switched on. The name is **Eng Academy**. Tap **Add**.
+5. Open **Eng Academy** from the Home Screen. It starts full screen with the Engineering Academy icon. Sign in once inside the app (it keeps its own sign-in, valid for 30 days).
+
+The same steps are in the app under **Install App**. The icon is fixed; see [docs/BRANDING.md](docs/BRANDING.md).
 
 ### How a record moves through the loop
 
@@ -78,6 +164,8 @@ server/app.js ─── request guards (Host allow-list, Origin check, JSON-only
    ├── server/repository.js  records: validation, CRUD, search, links, dashboard
    ├── server/learning.js    exercises, review scheduling, assessments, map, progress
    │      └── server/evaluator.js  pluggable answer scoring (local by default)
+   ├── server/courses.js     course tracks, lesson progress, lecture videos
+   │      └── server/curriculum/  course content (Robotics Engineering)
    ▼
 server/db.js ─── node:sqlite, versioned migrations (PRAGMA user_version)
    ▼
@@ -93,17 +181,25 @@ server/
   repository.js   Record validation, queries, search
   learning.js     Learning loop: stages, practice, reviews, assessments, map, progress
   evaluator.js    Answer scoring providers
+  courses.js      Courses: syllabus, lesson progress, video links, save-to-library
+  curriculum/     Course content, one file per track (robotics.js)
   resources.js    Categories, capture types, field definitions
   seed.js         First-run EXAMPLE records and practice history
 public/
-  index.html      Application shell
-  css/            styles.css (design tokens, layout) and learning.css
+  index.html      Application shell (PWA meta tags, icons, tab bar)
+  manifest.webmanifest  Installable-app manifest
+  sw.js           Service worker: offline app shell and opened lessons
+  favicon.svg     The app icon master artwork (see docs/BRANDING.md)
+  icons/          Home Screen and manifest icons rendered from favicon.svg
+  css/            styles.css (design tokens, layout), learning.css, courses.css (courses, video, mobile shell)
   js/main.js      Router, navigation, sign-in handling
   js/api.js       Fetch wrapper
   js/dom.js       Safe DOM builder (text nodes only, never innerHTML)
   js/schema.js    How each record type is displayed and edited
+  js/video.js     Lecture video player (YouTube, Vimeo, native video)
+  js/pwa.js       Service worker registration, install prompt, iOS detection
   js/views/       One module per screen
-scripts/          Build check, screenshot generator
+scripts/          Build check, screenshot generator, icon renderer
 tests/            API, learning and security tests, plus browser end-to-end tests
 ```
 
@@ -138,6 +234,10 @@ Open <http://localhost:4310>. The first run adds 13 records labelled **EXAMPLE**
 | `npm test` | API, learning, security and migration tests against temporary databases |
 | `npm run test:e2e` | Browser tests in headless Chrome or Edge (set `CHROME_PATH` if not found) |
 | `npm run screenshots` | Regenerate `docs/screenshots/` |
+| `npm run cloud:dev` | Run the Cloudflare version locally (`.dev.vars` holds test secrets) |
+| `npm run cloud:deploy` | Deploy to Cloudflare (see docs/DEPLOY.md) |
+| `npm run cloud:smoke -- <url> <password>` | Check a deployment: assets, sign-in, API, courses, PWA files |
+| `npm run icons` | Re-render the app icons from `public/favicon.svg` (only after an approved icon change) |
 
 Keyboard: `Ctrl K` search, `Ctrl Enter` save or check an answer, `Space` and `1`–`4` in the Review Center.
 
@@ -157,6 +257,7 @@ All settings are optional environment variables. [`.env.example`](.env.example) 
 | `ACADEMY_SECURE_COOKIES` | `false` | Always mark the session cookie `Secure` |
 | `ACADEMY_SEED` | `true` | Add example records to a new database |
 | `ACADEMY_EVALUATOR` | `local` | Answer-scoring provider |
+| `ACADEMY_MEDIA_DIR` | `data/videos` | Folder of lecture videos you host yourself, served at `/media/` |
 
 ## Database structure
 
@@ -174,6 +275,7 @@ One SQLite file. Migrations in `server/db.js` are append-only and tracked with `
 | `quizzes` | Generated assessments, with the answer key, submitted answers and score |
 | `activity` | Event log behind the heatmap (created, updated, studied, deleted) |
 | `meta` | Internal flags, for example whether examples were seeded |
+| `lesson_progress` | Per lesson: completed time, attached video link, video position, and the Knowledge Library record it was saved as |
 
 All record tables share `title`, `category`, `tags` (JSON array), `entry_date`, `is_sample`, `created_at`, `updated_at`, `last_studied_at` and `study_count`. Deleting a record also deletes its links, attempts and review schedule.
 
@@ -183,11 +285,15 @@ All record tables share `title`, `category`, `tags` (JSON array), `entry_date`, 
 
 ```powershell
 npm run build      # static check
-npm test           # 51 API, learning, security and migration tests
-npm run test:e2e   # 36 browser checks in headless Chrome or Edge
+npm test           # 85 API, learning, course, video, PWA, branding, deployment, security and migration tests
+npm run test:e2e   # 40 browser checks in headless Chrome or Edge
 ```
 
 The tests cover CRUD for all four collections, capture routing, validation and error responses, search (substring, Korean, wildcards, SQL metacharacters), links, persistence across restarts, the v1 to v2 migration, explain and rebuild scoring, review scheduling, assessment generation and grading (including that the answer key is never sent early), the knowledge map and link suggestions, sign-in (cookie flags, tampering, rate limiting), the host allow-list, the refusal to start exposed without a password, XSS rendering, CSP violations, and layout overflow from 390 px to 1440 px.
+
+Courses and mobile: curriculum completeness and ordering, lesson completion and progress, video link validation (unsafe links rejected), byte-range video serving and path traversal, saving lessons to the library, actual playback of a recorded video from the media folder, YouTube embed URLs, the phone tab bar and menu, the full-bleed 16:9 player at iPhone width, the manifest, icons and service-worker registration, and a hash lock on every icon file.
+
+When running as root (Linux containers, CI) the browser tests start Chrome with `--no-sandbox` automatically.
 
 ## Security
 
@@ -195,7 +301,9 @@ The tests cover CRUD for all four collections, capture routing, validation and e
 - Exposing it (`HOST` other than loopback, or any `ACADEMY_ALLOWED_HOSTS`) requires `ACADEMY_PASSWORD`, otherwise the server refuses to start.
 - Sessions are HMAC-signed, `HttpOnly`, `SameSite=Strict` cookies (also `Secure` behind HTTPS). Failed sign-ins are rate-limited per client.
 - Requests with an unexpected `Host` are rejected, which blocks DNS rebinding. Writes from a foreign `Origin` are rejected, which blocks CSRF.
-- All captured text is rendered as text nodes, backed by a strict Content-Security-Policy.
+- All captured text is rendered as text nodes, backed by a strict Content-Security-Policy. The policy allows exactly two outside frame sources, `www.youtube-nocookie.com` and `player.vimeo.com`, for lecture videos, and https video files. Scripts still load only from the app itself.
+- Lecture video links must be https or a file in the media folder; `javascript:`, `data:` and plain http links are refused. Media files are served only from the media folder, only with video extensions, and only to signed-in users.
+- The service worker never caches your records, reviews or videos, only the app's own files and course pages.
 - Secrets in `.env`, `*.pem` and `*.key` files, and the `data/` directory, are excluded from Git.
 
 ## Roadmap

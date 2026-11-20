@@ -1,6 +1,7 @@
 import { api } from '../api.js';
 import { dashboardCoach } from '../coach.js';
 import { categoryLabel, emptyState, kindBadge, pageHeader, recordHref, sampleBadge } from '../components.js';import { confirmDialog, formatDate, h, timeAgo, toast } from '../dom.js';
+import { continuePanel } from './courses.js';
 
 const WEEKS = 26;
 const dayKey = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -197,7 +198,7 @@ function recordRow(row, meta) {
 }
 
 export async function dashboardView({ rerender }) {
-  const data = await api.dashboard();
+  const [data, courses] = await Promise.all([api.dashboard(), api.courses().catch(() => [])]);
   const { totals } = data;
   const isBlank = totals.knowledge + totals.errors + totals.commands + totals.workflows === 0;
   const { learning } = data;
@@ -227,6 +228,7 @@ export async function dashboardView({ rerender }) {
         h('p', null, h('strong', null, `${totals.samples} example records loaded.`), ' Each one is labelled EXAMPLE so you can tell it from your own work.'),
         h('button', { type: 'button', class: 'button small', id: 'remove-samples', onclick: removeSamples }, 'Remove examples'),
       ),
+    continuePanel(courses),
     h(
       'div',
       { class: 'stats' },

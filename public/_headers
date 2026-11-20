@@ -1,0 +1,13 @@
+# Response headers for static files on Cloudflare (generated from server/api.js; tests/deploy.test.js keeps them in sync).
+/*
+  Content-Security-Policy: default-src 'self'; frame-src https://www.youtube-nocookie.com https://player.vimeo.com; media-src 'self' https:; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: no-referrer
+
+# The service worker must always be checked for updates.
+/sw.js
+  Cache-Control: no-cache
+  Service-Worker-Allowed: /
+
+/manifest.webmanifest
+  Content-Type: application/manifest+json; charset=utf-8

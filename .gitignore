@@ -39,3 +39,5 @@ desktop.ini
 
 # Local Claude Code state
 .claude/
+.dev.vars
+.wrangler/
