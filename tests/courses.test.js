@@ -8,6 +8,7 @@ import { createApp } from '../server/app.js';
 import { createAuth } from '../server/auth.js';
 import { cleanVideoUrl, TRACKS } from '../server/courses.js';
 import { ROBOTICS } from '../server/curriculum/robotics.js';
+import { PROJECT_STRUCTURE } from '../server/curriculum/project-structure/index.js';
 import { openDatabase } from '../server/db.js';
 import { createRepository, ValidationError } from '../server/repository.js';
 import { CATEGORIES } from '../server/resources.js';
@@ -105,7 +106,7 @@ describe('Robotics Engineering curriculum', () => {
   });
 
   it('is written entirely in English', () => {
-    const text = JSON.stringify(TRACKS);
+    const text = JSON.stringify(ROBOTICS);
     assert.doesNotMatch(text, /[ㄱ-힣぀-ヿ一-鿿]/, 'no Korean, Japanese or Chinese characters');
   });
 
@@ -323,5 +324,89 @@ describe('installable app', () => {
     assert.match(html, /name="apple-mobile-web-app-capable" content="yes"/);
     assert.match(html, /name="apple-mobile-web-app-title" content="Eng Academy"/);
     assert.match(html, /viewport-fit=cover/);
+  });
+});
+
+describe('Project Structure & File Literacy course', () => {
+  const lessons = PROJECT_STRUCTURE.modules.flatMap((m) => m.lessons);
+  const topic = (id) => PROJECT_STRUCTURE.modules.find((m) => m.id === id);
+
+  it('is registered after Robotics Engineering, with its Korean title', () => {
+    assert.ok(TRACKS.includes(PROJECT_STRUCTURE));
+    assert.equal(PROJECT_STRUCTURE.title, 'Project Structure & File Literacy');
+    assert.equal(PROJECT_STRUCTURE.titleKo, '프로젝트 구조와 파일 이해');
+    assert.equal(TRACKS[0].id, 'robotics', 'the existing course keeps its position');
+  });
+
+  it('has the seven modules in the requested order', () => {
+    assert.deepEqual(
+      PROJECT_STRUCTURE.modules.map((m) => m.id),
+      ['anatomy', 'folder-roles', 'file-types', 'configuration', 'backend', 'frontend', 'reading-lab'],
+    );
+  });
+
+  it('covers every requested topic in its own lesson', () => {
+    const has = (id, ...words) => {
+      const titles = topic(id).lessons.map((l) => l.title.toLowerCase());
+      for (const w of words) assert.ok(titles.some((t) => t.includes(w.toLowerCase())), `${id} is missing "${w}"`);
+    };
+    has('anatomy', 'project vs repository', 'folder vs directory', 'file and file extension', 'file path', 'root directory', 'source code vs resources');
+    has('folder-roles', 'src', 'main', 'test', 'static', 'templates', 'config', 'resources', 'build', 'target', 'dist', 'static vs templates vs config');
+    has('file-types', '.java', '.html', '.css', '.js', '.json', '.xml', '.yml', '.properties', '.gradle', '.md', '.env', '.gitignore', 'dockerfile');
+    has('configuration', 'application.properties', 'application.yml', 'build.gradle', 'environment variables', 'development vs production');
+    has('backend', 'controller', 'service', 'repository', 'entity', 'dto', 'relationships');
+    has('frontend', 'html', 'templates', 'static resources', 'css', 'javascript', 'components', 'frontend and backend');
+    has('reading-lab', 'explore a real github', 'folder responsibilities', 'individual files', 'file dependencies', 'browser to backend', 'architecture map');
+  });
+
+  it('gives every lesson the six questions, in order, each with content', () => {
+    const headings = [/무엇인가/, /왜 존재/, /위치/, /없으면/, /연결/, /실제 프로젝트/];
+    for (const l of lessons) {
+      assert.equal(l.sections.length, 6, `${l.id} has six sections`);
+      l.sections.forEach((s, i) => {
+        assert.match(s.heading, headings[i], `${l.id} section ${i + 1}`);
+        assert.ok(s.body.trim().length >= 30, `${l.id}: "${s.heading}" has a real answer`);
+      });
+    }
+  });
+
+  it('gives every lesson key terms, a Korean explanation, an exercise and knowledge checks', () => {
+    for (const l of lessons) {
+      assert.ok(l.keyTerms.length >= 1, `${l.id} has key terms`);
+      assert.ok(l.practice.trim().length > 20, `${l.id} has an exercise`);
+      assert.ok(l.knowledgeCheck.length >= 2, `${l.id} has knowledge checks`);
+      for (const c of l.knowledgeCheck) assert.ok(c.q && c.a, `${l.id} check is complete`);
+      assert.match(l.sections.map((s) => s.body).join(' '), /[가-힣]/, `${l.id} is explained in Korean`);
+    }
+  });
+
+  it('has unique lesson ids and a hands-on project per module', () => {
+    const ids = lessons.map((l) => l.id);
+    assert.equal(new Set(ids).size, ids.length);
+    for (const m of PROJECT_STRUCTURE.modules) assert.ok(m.project?.title && m.project.deliverables.length >= 2, `${m.id} has a project`);
+  });
+
+  it('keeps the static, templates and config comparison as its own lesson', () => {
+    const cmp = lessons.find((l) => l.id === 'static-vs-templates-vs-config');
+    assert.ok(cmp, 'comparison lesson exists');
+    assert.match(cmp.title, /static vs templates vs config/);
+  });
+
+  it('serves the course through the courses API and keeps progress separate per course', async () => {
+    const s = await startServer();
+    try {
+      const list = (await s.api('GET', 'courses')).json;
+      assert.equal(list[0].id, 'robotics');
+      const pst = list.find((c) => c.id === 'project-structure');
+      assert.equal(pst.titleKo, '프로젝트 구조와 파일 이해');
+      assert.equal(pst.lessons, 54);
+      const lesson = await s.api('GET', 'courses/project-structure/lessons/folder-templates');
+      assert.equal(lesson.status, 200);
+      assert.equal(lesson.json.knowledgeCheck.length, 2);
+      assert.equal((await s.api('PUT', 'courses/project-structure/lessons/folder-src', { completed: true })).json.completed, true);
+      assert.equal((await s.api('GET', 'courses/robotics/lessons/what-is-a-robot')).json.state.completed, false, 'other courses are unaffected');
+    } finally {
+      await s.close();
+    }
   });
 });

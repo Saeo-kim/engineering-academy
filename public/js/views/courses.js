@@ -1,6 +1,6 @@
 import { api } from '../api.js';
 import { emptyState, pageHeader } from '../components.js';
-import { h, icon, toast } from '../dom.js';
+import { h, icon, richText, toast } from '../dom.js';
 import { parseVideo, searchUrl, videoPlayer } from '../video.js';
 
 const courseHref = (trackId) => `#/courses/${trackId}`;
@@ -69,6 +69,7 @@ export async function coursesView() {
               { class: 'panel course-card', dataset: { course: c.id } },
               h('span', { class: 'badge level' }, c.level),
               h('h2', null, h('a', { href: courseHref(c.id) }, c.title)),
+              c.titleKo && h('p', { class: 'course-title-ko', lang: 'ko' }, c.titleKo),
               h('p', { class: 'course-tagline' }, c.tagline),
               h(
                 'ul',
@@ -158,6 +159,7 @@ export async function courseView({ params, query }) {
       { class: 'course-hero' },
       h('span', { class: 'badge level' }, course.level),
       h('h1', null, course.title),
+      course.titleKo && h('p', { class: 'course-title-ko', lang: 'ko' }, course.titleKo),
       h('p', { class: 'intro' }, course.tagline),
       h(
         'ul',
@@ -305,6 +307,22 @@ function videoSection(lesson, { onChange, onProgress, onEnded }) {
   return wrap;
 }
 
+// Each question is answered by the learner first; the answer is revealed on request.
+function knowledgeCheck(questions) {
+  return h(
+    'ol',
+    { class: 'check-list', id: 'knowledge-check' },
+    questions.map((q) =>
+      h(
+        'li',
+        null,
+        h('div', { class: 'check-question' }, richText(q.q)),
+        h('details', { class: 'check-answer' }, h('summary', null, 'Show the answer'), richText(q.a)),
+      ),
+    ),
+  );
+}
+
 export async function lessonView({ params }) {
   const lesson = await api.lesson(params.track, params.lesson);
   const trackId = lesson.track.id;
@@ -389,11 +407,12 @@ export async function lessonView({ params }) {
     video,
     h('div', { class: 'lesson-actions' }, completeButton, libraryWrap),
     section('Learning objectives', h('ul', { class: 'objectives' }, lesson.objectives.map((o) => h('li', null, icon('check'), h('span', null, o))))),
-    section('Overview', h('p', { class: 'lead' }, lesson.summary), h('p', { class: 'why' }, h('strong', null, 'Why it matters. '), lesson.why)),
-    lesson.sections.map((s) => section(s.heading, h('p', null, s.body))),
-    section('Key terms', h('dl', { class: 'terms' }, lesson.keyTerms.map(([term, def]) => [h('dt', null, term), h('dd', null, def)]))),
-    section('Real-world example', h('p', null, lesson.example)),
-    section('Practice', h('div', { class: 'practice-box' }, h('p', null, lesson.practice))),
+    section('Overview', h('p', { class: 'lead' }, lesson.summary), h('div', { class: 'why' }, h('strong', null, 'Why it matters. '), richText(lesson.why))),
+    lesson.sections.map((s) => section(s.heading, richText(s.body))),
+    section('Key terms', h('dl', { class: 'terms' }, lesson.keyTerms.map(([term, def]) => [h('dt', null, term), h('dd', null, richText(def))]))),
+    lesson.example && section('Real-world example', richText(lesson.example)),
+    section('Practice', h('div', { class: 'practice-box' }, richText(lesson.practice))),
+    lesson.knowledgeCheck?.length && section('Knowledge check', knowledgeCheck(lesson.knowledgeCheck)),
     lesson.module.project && section(`Module ${lesson.module.number} project`, projectCard(lesson.module.project, { id: 'module-project' })),
     h(
       'nav',

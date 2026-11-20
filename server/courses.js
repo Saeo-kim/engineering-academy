@@ -6,9 +6,10 @@
 // the Knowledge Library record a lesson was saved as.
 
 import { ROBOTICS } from './curriculum/robotics.js';
+import { PROJECT_STRUCTURE } from './curriculum/project-structure/index.js';
 import { NotFoundError, ValidationError } from './repository.js';
 
-export const TRACKS = [ROBOTICS];
+export const TRACKS = [ROBOTICS, PROJECT_STRUCTURE];
 
 const MAX_URL = 2048;
 // Files in the media folder are served at /media/<name>. Names stay simple so
@@ -83,6 +84,7 @@ export function createCourses(repo, tracks = TRACKS) {
     return {
       id: track.id,
       title: track.title,
+      titleKo: track.titleKo ?? null,
       tagline: track.tagline,
       level: track.level,
       modules: track.modules.length,
